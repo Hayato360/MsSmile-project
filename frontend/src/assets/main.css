@@ -1,0 +1,87 @@
+/* Nature Harmony Theme */
+:root {
+  --color-bg: #fcfdf5;
+  --color-primary: #a3e635;
+  --color-primary-hover: #84cc16;
+  --color-text: #365314;
+  --color-text-light: #65a30d;
+  --color-card-bg: #ffffff;
+  --color-border: #e5e7eb;
+  --sidebar-width: 280px;
+  --sidebar-bg: #ffffff;
+  --color-sidebar-active: #ecfccb; /* Light lime for active state */
+
+  --font-family: 'Inter', sans-serif; /* Use a clean font */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Utility Classes */
+.card {
+  background-color: var(--color-card-bg);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(163, 230, 53, 0.2); /* Subtle green border */
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+input,
+select {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  width: 100%;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(163, 230, 53, 0.2);
+}
