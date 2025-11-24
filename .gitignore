@@ -5,6 +5,7 @@ Mother.db-shm
 Mother.db-wal
 
 # Backend database
+./backend/Mother.db
 backend/Mother.db
 backend/Mother.db-journal
 backend/Mother.db-shm
