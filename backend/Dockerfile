@@ -17,7 +17,7 @@ COPY . .
 
 # Build the application
 # CGO_ENABLED=1 is required for SQLite
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=1 GOOS=linux go build -o main .
 
 # Final Stage
 FROM alpine:latest
