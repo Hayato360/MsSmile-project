@@ -5,7 +5,9 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./Mother.db:/app/Mother.db
+      - ./backend:/app/data
+    environment:
+      - DB_PATH=/app/data/Mother.db
     restart: unless-stopped
 
   frontend:

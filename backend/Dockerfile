@@ -3,8 +3,8 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install required system dependencies
-RUN apk add --no-cache gcc musl-dev
+# Install required system dependencies including sqlite-dev
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
@@ -17,15 +17,16 @@ COPY . .
 
 # Build the application
 # CGO_ENABLED=1 is required for SQLite
-RUN CGO_ENABLED=1 GOOS=linux go build -o main .
+# Use external sqlite library to avoid musl compatibility issues
+RUN CGO_ENABLED=1 GOOS=linux go build -tags "libsqlite3" -o main .
 
 # Final Stage
 FROM alpine:latest
 
 WORKDIR /app
 
-# Install CA certificates for HTTPS calls if needed
-RUN apk --no-cache add ca-certificates
+# Install CA certificates and sqlite runtime library
+RUN apk --no-cache add ca-certificates sqlite-libs
 
 # Copy binary from builder
 COPY --from=builder /app/main .

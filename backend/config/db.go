@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/bestiesmile1845/Projecteiei/entity"
 	"gorm.io/driver/sqlite"
@@ -15,7 +16,11 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-	database, err := gorm.Open(sqlite.Open("Mother.db?cache=shared"), &gorm.Config{})
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "Mother.db"
+	}
+	database, err := gorm.Open(sqlite.Open(dbPath+"?cache=shared"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -54,7 +59,6 @@ func SetupDatabase() {
 		PhoneNumber: "0655765587",
 	}
 
-
 	// StartDate, _ := time.Parse("2006-01-02 15:04:05", "2024-08-31 14:30:00")
 	// EndDate, _ := time.Parse("2006-01-02 15:04:05", "2024-08-31 14:30:00")
 	// Class := &entity.Class{
@@ -79,6 +83,5 @@ func SetupDatabase() {
 		FullName:    "Doctor D",
 		PhoneNumber: "0655765587",
 	})
-
 
 }
