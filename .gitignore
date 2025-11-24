@@ -1,0 +1,11 @@
+# Database files
+Mother.db
+Mother.db-journal
+Mother.db-shm
+Mother.db-wal
+
+# Backend database
+backend/Mother.db
+backend/Mother.db-journal
+backend/Mother.db-shm
+backend/Mother.db-wal
