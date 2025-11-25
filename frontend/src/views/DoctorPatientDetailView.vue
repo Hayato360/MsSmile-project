@@ -10,6 +10,7 @@ const patient = ref(null)
 const visits = ref([])
 const loading = ref(true)
 const activeTab = ref('visits') // visits, medical, vaccination, lab
+const isEditingMedicalHistory = ref(false)
 
 const visitForm = ref({
   VisitDate: new Date().toISOString().split('T')[0],
@@ -69,6 +70,7 @@ const vaccinationForm = ref({
   Dose1DateDuringPreg: null,
   Dose2DateDuringPreg: null,
   Remarks: '',
+  IsPreviouslyVaccinated: false, // Duplicate removed
 })
 
 const labResultForm = ref({
@@ -192,6 +194,7 @@ const saveMedicalHistory = async () => {
       PregnantWomanID: parseInt(route.params.id),
     })
     alert('บันทึกประวัติสุขภาพสำเร็จ')
+    isEditingMedicalHistory.value = false
   } catch (error) {
     console.error('Error:', error)
     alert('เกิดข้อผิดพลาด')
@@ -460,16 +463,119 @@ const formatDate = (dateString) => {
       <!-- Medical History Tab -->
       <div v-if="activeTab === 'medical'" class="card">
         <h2>ประวัติสุขภาพ</h2>
-        <form @submit.prevent="saveMedicalHistory">
+
+        <!-- View Mode -->
+        <div v-if="!isEditingMedicalHistory">
+          <div class="flex justify-between items-center mb-4">
+            <h3>ประวัติการเจ็บป่วย</h3>
+            <button @click="isEditingMedicalHistory = true" class="btn-edit">แก้ไขข้อมูล</button>
+          </div>
+
+          <div class="view-grid">
+            <div class="view-item">
+              <span class="label">โรคประจำตัว:</span>
+              <span class="value">{{ medicalHistoryForm.ChronicDiseases || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">โรคหัวใจ:</span>
+              <span class="value">{{ medicalHistoryForm.HeartDisease ? 'มี' : 'ไม่มี' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">โรคไทรอยด์:</span>
+              <span class="value">{{ medicalHistoryForm.Thyroid ? 'มี' : 'ไม่มี' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">โรคอื่นๆ:</span>
+              <span class="value">{{ medicalHistoryForm.OtherDiseases || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ประวัติผ่าตัด:</span>
+              <span class="value">{{ medicalHistoryForm.SurgeryHistory || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ผ่าตัดอื่นๆ:</span>
+              <span class="value">{{ medicalHistoryForm.OtherSurgery || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">โรคทางพันธุกรรม:</span>
+              <span class="value">{{ medicalHistoryForm.GeneticDiseases || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">แพ้ยา:</span>
+              <span class="value">{{ medicalHistoryForm.DrugAllergies || '-' }}</span>
+            </div>
+          </div>
+
+          <h3 class="mt-6">ประวัติครอบครัว</h3>
+          <div class="view-grid">
+            <div class="view-item">
+              <span class="label">ความดันโลหิตสูง:</span>
+              <span class="value">{{ medicalHistoryForm.FamilyHistoryHT ? 'มี' : 'ไม่มี' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">เบาหวาน:</span>
+              <span class="value">{{
+                medicalHistoryForm.FamilyHistoryDiabetes ? 'มี' : 'ไม่มี'
+              }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">โลหิตจาง (ธาลัสซีเมีย):</span>
+              <span class="value">{{
+                medicalHistoryForm.FamilyHistoryThalassemia ? 'มี' : 'ไม่มี'
+              }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">พิการแต่กำเนิด:</span>
+              <span class="value">{{
+                medicalHistoryForm.FamilyHistoryCongenital ? 'มี' : 'ไม่มี'
+              }}</span>
+            </div>
+            <div class="view-item col-span-2">
+              <span class="label">ประวัติอื่นๆ:</span>
+              <span class="value">{{ medicalHistoryForm.OtherFamilyHistory || '-' }}</span>
+            </div>
+          </div>
+
+          <h3 class="mt-6">ประวัติการคุมกำเนิด & ประจำเดือน</h3>
+          <div class="view-grid">
+            <div class="view-item">
+              <span class="label">คุมกำเนิดก่อนตั้งครรภ์ (วิธี):</span>
+              <span class="value">{{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ระยะเวลา:</span>
+              <span class="value">{{ medicalHistoryForm.ContraceptionBeforeDuration || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">คุมกำเนิดครั้งหลังสุด (วิธี):</span>
+              <span class="value">{{ medicalHistoryForm.ContraceptionLastMethod || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ระยะเวลา:</span>
+              <span class="value">{{ medicalHistoryForm.ContraceptionLastDuration || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ประจำเดือนมาทุก (วัน):</span>
+              <span class="value">{{ medicalHistoryForm.MenstrualCycle || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">นานครั้งละ (วัน):</span>
+              <span class="value">{{ medicalHistoryForm.MenstrualDuration || '-' }}</span>
+            </div>
+            <div class="view-item">
+              <span class="label">ความสม่ำเสมอ:</span>
+              <span class="value">{{ medicalHistoryForm.MenstrualCondition || '-' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <form v-else @submit.prevent="saveMedicalHistory">
           <h3>ประวัติการเจ็บป่วย</h3>
           <div class="form-grid">
             <div>
               <label>โรคประจำตัว (ระบุ)</label>
-              <input
-                type="text"
-                v-model="medicalHistoryForm.ChronicDiseases"
-                placeholder="ระบุโรคประจำตัว"
-              />
+              <input type="text" v-model="medicalHistoryForm.ChronicDiseases" />
             </div>
             <div>
               <label>
@@ -489,11 +595,7 @@ const formatDate = (dateString) => {
             </div>
             <div>
               <label>ประวัติผ่าตัด</label>
-              <input
-                type="text"
-                v-model="medicalHistoryForm.SurgeryHistory"
-                placeholder="เช่น ผ่าตัดคลอด"
-              />
+              <input type="text" v-model="medicalHistoryForm.SurgeryHistory" />
             </div>
             <div>
               <label>ผ่าตัดอื่นๆ</label>
@@ -584,10 +686,15 @@ const formatDate = (dateString) => {
             </div>
           </div>
 
-          <button type="submit" class="btn-save mt-4">
-            <Save size="18" />
-            บันทึกประวัติสุขภาพ
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button type="submit" class="btn-save">
+              <Save size="18" />
+              บันทึกประวัติสุขภาพ
+            </button>
+            <button type="button" @click="isEditingMedicalHistory = false" class="btn-cancel">
+              ยกเลิก
+            </button>
+          </div>
         </form>
       </div>
 
@@ -869,26 +976,110 @@ const formatDate = (dateString) => {
   cursor: pointer;
   font-weight: 500;
 }
+/* View Mode Styles */
+.view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.view-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.view-item .label {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.view-item .value {
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.btn-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.btn-cancel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+/* Form Styles Update */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+
 .form-grid label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.875rem;
+  color: #374151;
 }
-.form-grid input,
+
+.form-grid input[type='text'],
+.form-grid input[type='number'],
+.form-grid input[type='date'],
 .form-grid select,
 .form-grid textarea {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
   border-radius: 0.375rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
 }
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.1);
+}
+
 .btn-save,
 .btn-create {
   display: flex;
@@ -901,69 +1092,51 @@ const formatDate = (dateString) => {
   border-radius: 0.375rem;
   cursor: pointer;
   font-weight: 500;
+  transition: background-color 0.2s;
 }
-.visit-item {
-  border: 1px solid #eee;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-.visit-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-.badge {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-}
-.create-form {
-  max-width: 400px;
-  margin: 0 auto;
-}
-.form-group {
-  margin-bottom: 1rem;
-  text-align: left;
-}
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 0.375rem;
+
+.btn-save:hover,
+.btn-create:hover {
+  background: #65a30d; /* Darker green */
 }
 
 /* Table Styles */
 .table-responsive {
   overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
 }
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
-.data-table th,
-.data-table td {
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  text-align: left;
-}
+
 .data-table th {
-  background-color: #f9fafb;
+  background-color: #f8fafc;
+  color: #475569;
   font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
 }
-.data-table tr:hover {
-  background-color: #f9fafb;
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1e293b;
 }
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tr:hover {
+  background-color: #f1f5f9;
+}
+
 .text-center {
   text-align: center;
 }

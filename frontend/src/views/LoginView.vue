@@ -33,7 +33,7 @@ const handleLogin = async () => {
     <div class="login-container">
       <div class="login-card">
         <div class="logo-section">
-          <h1>🌿 Nature Mom</h1>
+          <h1>🌿 Healthcare Center</h1>
           <p>สมุดฝากครรภ์ดิจิทัล</p>
         </div>
 

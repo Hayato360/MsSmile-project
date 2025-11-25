@@ -36,7 +36,7 @@ const handleLogout = () => {
         </svg>
       </div>
       <div class="logo-text">
-        <h1 class="app-name">Nature Mom</h1>
+        <h1 class="app-name">Healthcare Center</h1>
         <span class="app-subtitle">ระบบแพทย์</span>
       </div>
     </div>
