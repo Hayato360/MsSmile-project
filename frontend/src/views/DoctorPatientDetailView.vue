@@ -27,11 +27,38 @@ const visitForm = ref({
 
 const medicalHistoryForm = ref({
   ChronicDiseases: '',
+  HeartDisease: false,
+  Thyroid: false,
+  OtherDiseases: '',
+  SurgeryHistory: '',
+  OtherSurgery: '',
   GeneticDiseases: '',
   DrugAllergies: '',
   FamilyHistoryHT: false,
+  FamilyHistoryDiabetes: false,
+  FamilyHistoryThalassemia: false,
   FamilyHistoryCongenital: false,
   OtherFamilyHistory: '',
+  ContraceptionBeforeMethod: '',
+  ContraceptionBeforeDuration: '',
+  ContraceptionLastMethod: '',
+  ContraceptionLastDuration: '',
+  MenstrualCycle: '',
+  MenstrualDuration: '',
+  MenstrualCondition: 'สม่ำเสมอ',
+})
+
+const previousPregnancies = ref([])
+const previousPregnancyForm = ref({
+  PregnancyNo: 1,
+  DeliveryDate: '',
+  GestationalAge: '',
+  DeliveryMethod: 'Normal',
+  BirthWeight: '',
+  Sex: 'Male',
+  DeliveryPlace: '',
+  Complications: '',
+  ChildStatus: 'Healthy',
 })
 
 const vaccinationForm = ref({
@@ -92,6 +119,10 @@ onMounted(async () => {
     if (historyRes.data.data) {
       medicalHistoryForm.value = historyRes.data.data
     }
+
+    // Load previous pregnancies
+    const prevPregRes = await api.get(`/doctor/patient/${patientId}/previous-pregnancies`)
+    previousPregnancies.value = prevPregRes.data.data || []
 
     calculateGA()
   } catch (error) {
@@ -210,8 +241,75 @@ const saveLabResult = async () => {
   }
 }
 
+const createPreviousPregnancy = async () => {
+  try {
+    await api.post('/doctor/previous-pregnancy', {
+      PregnantWomanID: parseInt(route.params.id),
+      pregnancy_no: parseInt(previousPregnancyForm.value.PregnancyNo),
+      delivery_date: new Date(previousPregnancyForm.value.DeliveryDate).toISOString(),
+      gestational_age: parseInt(previousPregnancyForm.value.GestationalAge),
+      delivery_method: previousPregnancyForm.value.DeliveryMethod,
+      birth_weight: parseFloat(previousPregnancyForm.value.BirthWeight),
+      sex: previousPregnancyForm.value.Sex,
+      delivery_place: previousPregnancyForm.value.DeliveryPlace,
+      complications: previousPregnancyForm.value.Complications,
+      child_status: previousPregnancyForm.value.ChildStatus,
+    })
+    alert('บันทึกข้อมูลครรภ์ในอดีตสำเร็จ')
+
+    // Refresh list
+    const prevPregRes = await api.get(`/doctor/patient/${route.params.id}/previous-pregnancies`)
+    previousPregnancies.value = prevPregRes.data.data || []
+
+    // Reset form (optional, maybe keep for next entry but increment No)
+    previousPregnancyForm.value.PregnancyNo++
+    previousPregnancyForm.value.DeliveryDate = ''
+    previousPregnancyForm.value.GestationalAge = ''
+    previousPregnancyForm.value.BirthWeight = ''
+  } catch (error) {
+    console.error('Error:', error)
+    alert('เกิดข้อผิดพลาด')
+  }
+}
+
+onMounted(async () => {
+  const patientId = route.params.id
+  try {
+    const patientRes = await api.get(`/doctor/patients/${patientId}`)
+    patient.value = patientRes.data
+
+    const visitsRes = await api.get(`/doctor/patient/${patientId}/visits`)
+    visits.value = visitsRes.data || []
+
+    // Load medical history
+    const historyRes = await api.get(`/doctor/patient/${patientId}/medical-history`)
+    if (historyRes.data.data) {
+      medicalHistoryForm.value = historyRes.data.data
+    }
+
+    // Load previous pregnancies
+    const prevPregRes = await api.get(`/doctor/patient/${patientId}/previous-pregnancies`)
+    previousPregnancies.value = prevPregRes.data.data || []
+
+    calculateGA()
+  } catch (error) {
+    console.error('Error:', error)
+  } finally {
+    loading.value = false
+  }
+})
+
 const goBack = () => router.push('/doctor/dashboard')
-const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-TH')
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  if (date.getFullYear() < 1900) return '-'
+  return date.toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
 </script>
 
 <template>
@@ -247,6 +345,9 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-T
         </button>
         <button :class="{ active: activeTab === 'lab' }" @click="activeTab = 'lab'">
           <FlaskConical size="18" /> ผลแล็บ
+        </button>
+        <button :class="{ active: activeTab === 'prev_preg' }" @click="activeTab = 'prev_preg'">
+          <FileText size="18" /> ประวัติครรภ์อดีต
         </button>
       </div>
 
@@ -360,14 +461,43 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-T
       <div v-if="activeTab === 'medical'" class="card">
         <h2>ประวัติสุขภาพ</h2>
         <form @submit.prevent="saveMedicalHistory">
+          <h3>ประวัติการเจ็บป่วย</h3>
           <div class="form-grid">
             <div>
-              <label>โรคประจำตัว</label>
+              <label>โรคประจำตัว (ระบุ)</label>
               <input
                 type="text"
                 v-model="medicalHistoryForm.ChronicDiseases"
-                placeholder="เบาหวาน, ความดันโลหิตสูง"
+                placeholder="ระบุโรคประจำตัว"
               />
+            </div>
+            <div>
+              <label>
+                <input type="checkbox" v-model="medicalHistoryForm.HeartDisease" />
+                โรคหัวใจ
+              </label>
+            </div>
+            <div>
+              <label>
+                <input type="checkbox" v-model="medicalHistoryForm.Thyroid" />
+                โรคไทรอยด์
+              </label>
+            </div>
+            <div>
+              <label>โรคอื่นๆ</label>
+              <input type="text" v-model="medicalHistoryForm.OtherDiseases" />
+            </div>
+            <div>
+              <label>ประวัติผ่าตัด</label>
+              <input
+                type="text"
+                v-model="medicalHistoryForm.SurgeryHistory"
+                placeholder="เช่น ผ่าตัดคลอด"
+              />
+            </div>
+            <div>
+              <label>ผ่าตัดอื่นๆ</label>
+              <input type="text" v-model="medicalHistoryForm.OtherSurgery" />
             </div>
             <div>
               <label>โรคทางพันธุกรรม</label>
@@ -385,26 +515,182 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-T
                 placeholder="Penicillin, Aspirin"
               />
             </div>
+          </div>
+
+          <h3>ประวัติครอบครัว</h3>
+          <div class="form-grid">
             <div>
               <label>
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryHT" />
-                ประวัติความดันในครอบครัว
+                ความดันโลหิตสูง
+              </label>
+            </div>
+            <div>
+              <label>
+                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryDiabetes" />
+                เบาหวาน
+              </label>
+            </div>
+            <div>
+              <label>
+                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryThalassemia" />
+                โลหิตจาง (ธาลัสซีเมีย)
               </label>
             </div>
             <div>
               <label>
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryCongenital" />
-                ประวัติพิการแต่กำเนิดในครอบครัว
+                พิการแต่กำเนิด
               </label>
             </div>
             <div style="grid-column: 1 / -1">
               <label>ประวัติอื่นๆ</label>
-              <textarea v-model="medicalHistoryForm.OtherFamilyHistory" rows="3"></textarea>
+              <textarea v-model="medicalHistoryForm.OtherFamilyHistory" rows="2"></textarea>
+            </div>
+          </div>
+
+          <h3>ประวัติการคุมกำเนิด & ประจำเดือน</h3>
+          <div class="form-grid">
+            <div>
+              <label>คุมกำเนิดก่อนตั้งครรภ์ (วิธี)</label>
+              <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeMethod" />
+            </div>
+            <div>
+              <label>ระยะเวลา</label>
+              <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeDuration" />
+            </div>
+            <div>
+              <label>คุมกำเนิดครั้งหลังสุด (วิธี)</label>
+              <input type="text" v-model="medicalHistoryForm.ContraceptionLastMethod" />
+            </div>
+            <div>
+              <label>ระยะเวลา</label>
+              <input type="text" v-model="medicalHistoryForm.ContraceptionLastDuration" />
+            </div>
+            <div>
+              <label>ประจำเดือนมาทุก (วัน)</label>
+              <input type="number" v-model.number="medicalHistoryForm.MenstrualCycle" />
+            </div>
+            <div>
+              <label>นานครั้งละ (วัน)</label>
+              <input type="number" v-model.number="medicalHistoryForm.MenstrualDuration" />
+            </div>
+            <div>
+              <label>ความสม่ำเสมอ</label>
+              <select v-model="medicalHistoryForm.MenstrualCondition">
+                <option>สม่ำเสมอ</option>
+                <option>ไม่สม่ำเสมอ</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-save mt-4">
+            <Save size="18" />
+            บันทึกประวัติสุขภาพ
+          </button>
+        </form>
+      </div>
+
+      <!-- Previous Pregnancies Tab -->
+      <div v-if="activeTab === 'prev_preg'" class="card">
+        <h2>ประวัติการตั้งครรภ์ในอดีต</h2>
+
+        <!-- List -->
+        <div class="table-responsive mb-4">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ครรภ์ที่</th>
+                <th>วันคลอด</th>
+                <th>GA (wk)</th>
+                <th>วิธีคลอด</th>
+                <th>นน. (kg)</th>
+                <th>เพศ</th>
+                <th>สถานที่</th>
+                <th>ภาวะแทรกซ้อน</th>
+                <th>สถานะเด็ก</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="preg in previousPregnancies" :key="preg.ID">
+                <td>{{ preg.pregnancy_no }}</td>
+                <td>{{ formatDate(preg.delivery_date) }}</td>
+                <td>{{ preg.gestational_age }}</td>
+                <td>{{ preg.delivery_method }}</td>
+                <td>{{ preg.birth_weight }}</td>
+                <td>{{ preg.sex }}</td>
+                <td>{{ preg.delivery_place }}</td>
+                <td>{{ preg.complications }}</td>
+                <td>{{ preg.child_status }}</td>
+              </tr>
+              <tr v-if="previousPregnancies.length === 0">
+                <td colspan="9" class="text-center">ไม่มีข้อมูล</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add Form -->
+        <h3>เพิ่มข้อมูลครรภ์ในอดีต</h3>
+        <form @submit.prevent="createPreviousPregnancy">
+          <div class="form-grid">
+            <div>
+              <label>ครรภ์ที่</label>
+              <input type="number" v-model.number="previousPregnancyForm.PregnancyNo" required />
+            </div>
+            <div>
+              <label>วันที่คลอด/แท้ง</label>
+              <input type="date" v-model="previousPregnancyForm.DeliveryDate" required />
+            </div>
+            <div>
+              <label>อายุครรภ์ (สัปดาห์)</label>
+              <input type="number" v-model.number="previousPregnancyForm.GestationalAge" required />
+            </div>
+            <div>
+              <label>วิธีคลอด/แท้ง</label>
+              <select v-model="previousPregnancyForm.DeliveryMethod">
+                <option>Normal</option>
+                <option>C-Section</option>
+                <option>Vacuum</option>
+                <option>Abortion</option>
+              </select>
+            </div>
+            <div>
+              <label>น้ำหนักทารก (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                v-model.number="previousPregnancyForm.BirthWeight"
+                required
+              />
+            </div>
+            <div>
+              <label>เพศ</label>
+              <select v-model="previousPregnancyForm.Sex">
+                <option>Male</option>
+                <option>Female</option>
+              </select>
+            </div>
+            <div>
+              <label>สถานที่คลอด</label>
+              <input type="text" v-model="previousPregnancyForm.DeliveryPlace" />
+            </div>
+            <div>
+              <label>ภาวะแทรกซ้อน</label>
+              <input type="text" v-model="previousPregnancyForm.Complications" />
+            </div>
+            <div>
+              <label>สถานะเด็ก</label>
+              <select v-model="previousPregnancyForm.ChildStatus">
+                <option>Healthy</option>
+                <option>Deceased</option>
+                <option>Sick</option>
+              </select>
             </div>
           </div>
           <button type="submit" class="btn-save">
             <Save size="18" />
-            บันทึก
+            เพิ่มข้อมูล
           </button>
         </form>
       </div>
@@ -560,18 +846,18 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-T
 }
 .tabs button.active {
   background: var(--color-primary);
-  color: var(--color-text);
+  color: white;
   border-color: var(--color-primary);
 }
 .no-pregnancy {
   text-align: center;
   padding: 2rem;
-  background: #fef3c7;
+  background: #fff7ed;
   border-radius: 0.5rem;
 }
 .warning-text {
-  color: #92400e;
-  font-weight: 500;
+  color: #c2410c;
+  font-weight: 600;
   margin-bottom: 1rem;
 }
 .btn-create {
@@ -581,87 +867,104 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('th-T
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 .form-grid label {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 0.875rem;
   font-weight: 500;
-}
-.form-grid input[type='checkbox'] {
-  width: auto;
-  margin-right: 0.5rem;
+  font-size: 0.875rem;
 }
 .form-grid input,
-.form-grid textarea,
-.form-grid select {
+.form-grid select,
+.form-grid textarea {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 0.375rem;
 }
-.btn-save {
+.btn-save,
+.btn-create {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: var(--color-primary);
-  color: var(--color-text);
+  color: white;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 .visit-item {
+  border: 1px solid #eee;
   padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.375rem;
-  margin-top: 0.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 .visit-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 500;
   margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 .badge {
-  margin-left: auto;
-  background: var(--color-primary);
-  color: var(--color-text);
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
 }
 .create-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 300px;
+  max-width: 400px;
   margin: 0 auto;
 }
-.create-form .form-group {
-  width: 100%;
+.form-group {
+  margin-bottom: 1rem;
   text-align: left;
 }
-.create-form label {
+.form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  color: #4b5563;
 }
-.create-form input {
+.form-group input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 0.375rem;
+}
+
+/* Table Styles */
+.table-responsive {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+.data-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.data-table tr:hover {
+  background-color: #f9fafb;
+}
+.text-center {
+  text-align: center;
 }
 </style>

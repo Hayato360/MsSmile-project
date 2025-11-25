@@ -38,6 +38,7 @@ func main() {
 		// Medical History Routes
 		protected.GET("/medical-histories/pregnant-woman/:id", controller.GetMedicalHistoryByPregnantWomanID)
 		protected.PUT("/medical-histories/:id", controller.UpdateMedicalHistory)
+		protected.GET("/previous-pregnancies/pregnant-woman/:id", controller.GetPreviousPregnanciesByPregnantWomanID)
 
 		// Antenatal Visit Routes
 		protected.GET("/antenatal-visits/pregnancy/:id", controller.GetAntenatalVisitsByPregnancyID)
@@ -55,6 +56,9 @@ func main() {
 		protected.GET("/doctor/patient/:patientId/medical-history", controller.GetPatientMedicalHistory)
 		protected.POST("/doctor/lab-result", controller.DoctorCreateLabResult)
 		protected.POST("/doctor/vaccination", controller.DoctorCreateVaccination)
+		
+		protected.POST("/doctor/previous-pregnancy", controller.DoctorCreatePreviousPregnancy)
+		protected.GET("/doctor/patient/:patientId/previous-pregnancies", controller.GetPreviousPregnancies)
 
 		// Profile Routes
 		protected.PUT("/profile/husband", controller.UpdateHusband)

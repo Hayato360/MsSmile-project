@@ -16,11 +16,11 @@ func GetMedicalHistoryByPregnantWomanID(c *gin.Context) {
 	db := config.DB()
 
 	if err := db.Where("pregnant_woman_id = ?", id).First(&history).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"data": nil})
 		return
 	}
 
-	c.JSON(http.StatusOK, history)
+	c.JSON(http.StatusOK, gin.H{"data": history})
 }
 
 // PUT /medical-histories/:id

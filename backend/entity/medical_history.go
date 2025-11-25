@@ -10,9 +10,29 @@ type MedicalHistory struct {
 	PregnantWoman   *PregnantWoman `gorm:"references:ID"`
 
 	ChronicDiseases         string
+	HeartDisease            bool
+	Thyroid                 bool
+	OtherDiseases           string
+	SurgeryHistory          string // C-Section, Other
+	OtherSurgery            string
 	GeneticDiseases         string
 	DrugAllergies           string
-	FamilyHistoryHT         bool
-	FamilyHistoryCongenital bool
-	OtherFamilyHistory      string
+
+	// Family History
+	FamilyHistoryHT          bool
+	FamilyHistoryDiabetes    bool
+	FamilyHistoryThalassemia bool
+	FamilyHistoryCongenital  bool
+	OtherFamilyHistory       string
+
+	// Contraception
+	ContraceptionBeforeMethod   string
+	ContraceptionBeforeDuration string
+	ContraceptionLastMethod     string
+	ContraceptionLastDuration   string
+
+	// Menstruation
+	MenstrualCycle     int    // Every X days
+	MenstrualDuration  int    // Lasts X days
+	MenstrualCondition string // Regular/Irregular
 }

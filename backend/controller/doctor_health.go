@@ -27,11 +27,28 @@ func DoctorCreateMedicalHistory(c *gin.Context) {
 	if result.Error == nil {
 		// Update existing
 		existing.ChronicDiseases = input.ChronicDiseases
+		existing.HeartDisease = input.HeartDisease
+		existing.Thyroid = input.Thyroid
+		existing.OtherDiseases = input.OtherDiseases
+		existing.SurgeryHistory = input.SurgeryHistory
+		existing.OtherSurgery = input.OtherSurgery
 		existing.GeneticDiseases = input.GeneticDiseases
 		existing.DrugAllergies = input.DrugAllergies
+		
 		existing.FamilyHistoryHT = input.FamilyHistoryHT
+		existing.FamilyHistoryDiabetes = input.FamilyHistoryDiabetes
+		existing.FamilyHistoryThalassemia = input.FamilyHistoryThalassemia
 		existing.FamilyHistoryCongenital = input.FamilyHistoryCongenital
 		existing.OtherFamilyHistory = input.OtherFamilyHistory
+
+		existing.ContraceptionBeforeMethod = input.ContraceptionBeforeMethod
+		existing.ContraceptionBeforeDuration = input.ContraceptionBeforeDuration
+		existing.ContraceptionLastMethod = input.ContraceptionLastMethod
+		existing.ContraceptionLastDuration = input.ContraceptionLastDuration
+
+		existing.MenstrualCycle = input.MenstrualCycle
+		existing.MenstrualDuration = input.MenstrualDuration
+		existing.MenstrualCondition = input.MenstrualCondition
 
 		if err := db.Save(&existing).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -46,6 +63,53 @@ func DoctorCreateMedicalHistory(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Created", "data": input})
 	}
+}
+
+// POST /doctor/previous-pregnancy - Create previous pregnancy record
+func DoctorCreatePreviousPregnancy(c *gin.Context) {
+	var input entity.PreviousPregnancy
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB()
+
+	if err := db.Create(&input).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Created", "data": input})
+}
+
+// GET /doctor/patient/:patientId/previous-pregnancies
+func GetPreviousPregnancies(c *gin.Context) {
+	patientId := c.Param("patientId")
+	db := config.DB()
+
+	var pregnancies []entity.PreviousPregnancy
+	if err := db.Where("pregnant_woman_id = ?", patientId).Order("pregnancy_no ASC").Find(&pregnancies).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": []entity.PreviousPregnancy{}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": pregnancies})
+}
+
+// GET /previous-pregnancies/pregnant-woman/:id
+func GetPreviousPregnanciesByPregnantWomanID(c *gin.Context) {
+	id := c.Param("id")
+	db := config.DB()
+
+	var pregnancies []entity.PreviousPregnancy
+	if err := db.Where("pregnant_woman_id = ?", id).Order("pregnancy_no ASC").Find(&pregnancies).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": []entity.PreviousPregnancy{}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": pregnancies})
 }
 
 // POST /doctor/lab-result - Create lab result

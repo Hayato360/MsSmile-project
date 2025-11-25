@@ -33,6 +33,12 @@ func SetupDatabase() {
 	db.AutoMigrate(
 		&entity.PregnantWoman{},
 		&entity.Doctor{},
+		&entity.PreviousPregnancy{},
+		&entity.MedicalHistory{},
+		&entity.Vaccination{},
+		&entity.AntenatalVisit{},
+		&entity.LabResult{},
+		&entity.FetalKickCount{},
 	)
 	// GenderMale := entity.Genders{Gender: "Male"}
 	// GenderFemale := entity.Genders{Gender: "Female"}
