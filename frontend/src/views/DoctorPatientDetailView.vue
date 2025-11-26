@@ -313,6 +313,17 @@ const formatDate = (dateString) => {
     day: 'numeric',
   })
 }
+const calculateAge = (birthDate) => {
+  if (!birthDate) return '-'
+  const birth = new Date(birthDate)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age
+}
 </script>
 
 <template>
@@ -330,7 +341,7 @@ const formatDate = (dateString) => {
         <div class="info-grid">
           <div><span class="label">ชื่อ:</span> {{ patient.full_name }}</div>
           <div><span class="label">HN:</span> {{ patient.hn }}</div>
-          <div><span class="label">อายุ:</span> {{ patient.age }} ปี</div>
+          <div><span class="label">อายุ:</span> {{ calculateAge(patient.birth_date) }} ปี</div>
           <div><span class="label">เบอร์โทร:</span> {{ patient.phone_number }}</div>
         </div>
       </div>

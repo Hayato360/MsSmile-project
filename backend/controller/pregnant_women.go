@@ -2,6 +2,8 @@ package controller
 
 import (
 	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/bestiesmile1845/Projecteiei/entity"
 	"github.com/bestiesmile1845/Projecteiei/config"
@@ -31,20 +33,30 @@ func CreatePregnantWoman(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists in doctor"})
 		return
 	}
-
 	// เข้ารหัสลับรหัสผ่านที่ผู้ใช้กรอกก่อนบันทึกลงฐานข้อมูล
 	hashedPassword, _ := config.HashPassword(PregnantWoman.Password)
 
+	// Calculate Age from BirthDate
+	age := 0
+	if !PregnantWoman.BirthDate.IsZero() {
+		now := time.Now()
+		age = now.Year() - PregnantWoman.BirthDate.Year()
+		if now.YearDay() < PregnantWoman.BirthDate.YearDay() {
+			age--
+		}
+	}
+
 	// สร้าง PregnantWoman พร้อมระบุฟิลด์ทั้งหมดที่จำเป็น
 	m := entity.PregnantWoman{
-		FullName: PregnantWoman.FullName,
-		Email:     PregnantWoman.Email,
-		Password:  hashedPassword,
-		Username: PregnantWoman.Username,
+		FullName:    PregnantWoman.FullName,
+		Email:       PregnantWoman.Email,
+		Password:    hashedPassword,
+		Username:    PregnantWoman.Username,
 		PhoneNumber: PregnantWoman.PhoneNumber,
-		Age: PregnantWoman.Age,
-		HN: PregnantWoman.HN, // **แก้ไข: เพิ่ม HN**
-		CitizenID: PregnantWoman.CitizenID, // **แก้ไข: เพิ่ม CitizenID**
+		BirthDate:   PregnantWoman.BirthDate,
+		Age:         age,
+		HN:          PregnantWoman.HN,
+		CitizenID:   PregnantWoman.CitizenID,
 	}
 
 	// บันทึก

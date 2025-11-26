@@ -1,11 +1,16 @@
 package entity
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type PregnantWoman struct {
 	gorm.Model
-	FullName    string `json:"full_name"`
-	Age         int    `json:"age"`
+	FullName    string    `json:"full_name"`
+	BirthDate   time.Time `json:"birth_date"`
+	Age         int       `json:"age"`
 	HN          string `json:"hn"`
 	CitizenID   string `json:"citizen_id"`
 	PhoneNumber string `json:"phone_number"`

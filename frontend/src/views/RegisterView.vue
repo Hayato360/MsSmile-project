@@ -12,7 +12,7 @@ const formData = ref({
   username: '',
   password: '',
   phone_number: '',
-  age: '',
+  birth_date: '',
   hn: '',
   citizen_id: '',
 })
@@ -31,7 +31,7 @@ const handleRegister = async () => {
       username: formData.value.username,
       password: formData.value.password,
       phone_number: formData.value.phone_number,
-      age: parseInt(formData.value.age),
+      birth_date: new Date(formData.value.birth_date).toISOString(),
       hn: formData.value.hn,
       citizen_id: formData.value.citizen_id,
     })
@@ -64,8 +64,8 @@ const handleRegister = async () => {
               <input type="text" v-model="formData.full_name" required />
             </div>
             <div class="form-group">
-              <label>อายุ *</label>
-              <input type="number" v-model="formData.age" required />
+              <label>วันเกิด *</label>
+              <input type="date" v-model="formData.birth_date" required />
             </div>
           </div>
 
