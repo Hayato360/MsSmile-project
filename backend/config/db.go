@@ -40,54 +40,27 @@ func SetupDatabase() {
 		&entity.LabResult{},
 		&entity.FetalKickCount{},
 	)
-	// GenderMale := entity.Genders{Gender: "Male"}
-	// GenderFemale := entity.Genders{Gender: "Female"}
 
-	// db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
-	// db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
+	hashedPassword, _ := HashPassword("123456")
 
-	// hashedPasswordAd, _ := HashPassword("123456")
-	// Admin := entity.Admin{
-	// 	Username: "Admin",
-	// 	Password: hashedPasswordAd,
-	// 	Email: "Admin@gmail.com",
-	// 	Firstname: "Thawan",
-	// 	Lastname:  "Banda",
-	// 	GenderID: 2,
-	// }
-
-	hashedPasswordAd, _ := HashPassword("123456")
-	Admin := entity.Doctor{
+	// Create Doctor
+	Doctor := entity.Doctor{
 		Username:    "Doctor",
-		Password:    hashedPasswordAd,
+		Password:    hashedPassword,
 		Email:       "Doctor@gmail.com",
 		FullName:    "Doctor D",
 		PhoneNumber: "0655765587",
 	}
+	db.FirstOrCreate(&Doctor, &entity.Doctor{Username: "Doctor"})
 
-	// StartDate, _ := time.Parse("2006-01-02 15:04:05", "2024-08-31 14:30:00")
-	// EndDate, _ := time.Parse("2006-01-02 15:04:05", "2024-08-31 14:30:00")
-	// Class := &entity.Class{
-	// 	ClassName: "Hatha Yoga",
-	// 	Deets:  "Introduction to yoga for strength & flexibility",
-	// 	StartDate: StartDate,
-	// 	EndDate:  EndDate,
-	// 	TrainerID: 1,
-	// 	ClassPic: "aa",
-	// 	ParticNum: 30,
-	// 	ClassTypeID: 1,
-	// 	AdminID: 1,
-	// }
-
-	// db.FirstOrCreate(&Admin, entity.Admin{Email: "PsAdmin@gmail.com"})
-	// db.FirstOrCreate(&Member, entity.Member{Email: "Ps@gmail.com"})
-
-	db.FirstOrCreate(&Admin, &entity.Doctor{
-		Username:    "Doctor",
-		Password:    hashedPasswordAd,
-		Email:       "Doctor@gmail.com",
-		FullName:    "Doctor D",
-		PhoneNumber: "0655765587",
-	})
-
+	// Create Pregnant Woman (Not Pregnant yet)
+	Woman := entity.PregnantWoman{
+		Username:    "Mommy",
+		Password:    hashedPassword,
+		Email:       "Mommy@gmail.com",
+		FullName:    "Mommy M",
+		PhoneNumber: "0812345678",
+		Age:         25,
+	}
+	db.FirstOrCreate(&Woman, &entity.PregnantWoman{Username: "Mommy"})
 }
