@@ -6,7 +6,7 @@ import router from '../router'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(localStorage.getItem('token') || null)
-  const role = ref(null)
+  const role = ref(localStorage.getItem('role') || null)
   const pregnancyId = ref(null) // Store the current pregnancy ID
   const loading = ref(false)
 
@@ -37,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
       role.value = data.role
 
       localStorage.setItem('token', data.token)
+      localStorage.setItem('role', data.role)
 
       // Fetch user details to get pregnancy ID
       await fetchMe()
@@ -57,6 +58,9 @@ export const useAuthStore = defineStore('auth', () => {
       const data = response.data.data
       user.value = data.user
       role.value = data.role
+
+      // Update role in localStorage just in case
+      localStorage.setItem('role', data.role)
 
       // Extract Pregnancy ID if available
       if (data.user.Pregnancies && data.user.Pregnancies.length > 0) {
@@ -84,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = null
     pregnancyId.value = null
     localStorage.removeItem('token')
+    localStorage.removeItem('role')
     router.push('/login')
   }
 
