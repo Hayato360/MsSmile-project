@@ -136,7 +136,16 @@ const getTotal = (record) =>
       </div>
     </header>
 
-    <div v-if="authStore.gestationalAge" class="content-grid">
+    <div v-if="!authStore.pregnancyId" class="empty-state-card">
+      <div class="empty-icon-container">
+        <Baby class="empty-icon" />
+      </div>
+      <h3>ไม่พบข้อมูลการตั้งครรภ์ปัจจุบัน</h3>
+      <p>การนับลูกดิ้นจะเริ่มเมื่อมีการฝากครรภ์และสถานะการตั้งครรภ์เป็น "กำลังตั้งครรภ์"</p>
+      <p class="sub-text">หากคุณเพิ่งฝากครรภ์ กรุณาติดต่อเจ้าหน้าที่เพื่อบันทึกข้อมูล</p>
+    </div>
+
+    <div v-else-if="authStore.gestationalAge" class="content-grid">
       <!-- Chart Section -->
       <div class="card chart-card">
         <h3>สถิติลูกดิ้นย้อนหลัง</h3>
@@ -354,33 +363,47 @@ const getTotal = (record) =>
   font-style: italic;
 }
 
-.empty-state {
+.empty-state-card {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   background: white;
-  border-radius: 0.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-.empty-icon-wrapper {
-  display: inline-flex;
+.empty-icon-container {
+  background-color: #ecfccb; /* Lime 100 */
   padding: 1.5rem;
-  background-color: #f0fdf4;
   border-radius: 50%;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .empty-icon {
-  color: var(--color-primary);
+  width: 48px;
+  height: 48px;
+  color: #65a30d; /* Lime 600 */
 }
 
-.empty-state h3 {
-  margin: 0 0 0.5rem;
-  color: var(--color-text);
-}
-
-.empty-state p {
-  color: var(--color-text-light);
+.empty-state-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
   margin: 0;
+}
+
+.empty-state-card p {
+  color: #6b7280;
+  margin: 0;
+  max-width: 500px;
+}
+
+.empty-state-card .sub-text {
+  font-size: 0.875rem;
+  color: #9ca3af;
 }
 </style>

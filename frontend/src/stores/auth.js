@@ -15,10 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
   const gestationalAge = computed(() => {
     if (!user.value?.Pregnancies || user.value.Pregnancies.length === 0) return null
 
-    const pregnancy = user.value.Pregnancies[user.value.Pregnancies.length - 1]
-    if (!pregnancy.LMP) return null
+    const activePregnancy = user.value.Pregnancies.find((p) => p.status === 'Active')
+    if (!activePregnancy || !activePregnancy.LMP) return null
 
-    const lmp = new Date(pregnancy.LMP)
+    const lmp = new Date(activePregnancy.LMP)
     const today = new Date()
     const diffTime = Math.abs(today - lmp)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -60,8 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Extract Pregnancy ID if available
       if (data.user.Pregnancies && data.user.Pregnancies.length > 0) {
-        // Assuming the latest pregnancy is the active one
-        pregnancyId.value = data.user.Pregnancies[data.user.Pregnancies.length - 1].ID
+        const activePregnancy = data.user.Pregnancies.find((p) => p.status === 'Active')
+        pregnancyId.value = activePregnancy ? activePregnancy.ID : null
       }
     } catch (error) {
       console.error('Fetch user failed:', error)

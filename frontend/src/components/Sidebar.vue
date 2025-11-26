@@ -3,26 +3,13 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { LayoutDashboard, FileText, Syringe, Baby, FileHeart, User, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 
-import { computed } from 'vue'
+
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const gestationalAge = computed(() => {
-  if (!authStore.user?.Pregnancies || authStore.user.Pregnancies.length === 0) return null
 
-  const pregnancy = authStore.user.Pregnancies[authStore.user.Pregnancies.length - 1]
-  if (!pregnancy.LMP) return null
-
-  const lmp = new Date(pregnancy.LMP)
-  const today = new Date()
-  const diffTime = Math.abs(today - lmp)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  const weeks = Math.floor(diffDays / 7)
-
-  return weeks
-})
 
 const menuItems = [
   { name: 'ภาพรวม (Dashboard)', path: '/', icon: LayoutDashboard },
@@ -74,7 +61,7 @@ const handleLogout = () => {
       </div>
       <div class="user-info">
         <h3>{{ authStore.user?.full_name || 'คุณแม่สมมติ' }}</h3>
-        <p v-if="gestationalAge">อายุครรภ์: {{ gestationalAge }} สัปดาห์</p>
+        <p v-if="authStore.gestationalAge">อายุครรภ์: {{ authStore.gestationalAge }} สัปดาห์</p>
         <p v-else class="text-muted">ยังไม่มีข้อมูลครรภ์</p>
       </div>
     </div>

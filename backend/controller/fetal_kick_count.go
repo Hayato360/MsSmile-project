@@ -1,4 +1,4 @@
-package controller
+`package controller
 
 import (
 	"net/http"
@@ -24,6 +24,18 @@ func CreateFetalKickCount(c *gin.Context) {
 	// Validate PregnancyID
 	if kickCount.PregnancyID == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "PregnancyID is required"})
+		return
+	}
+
+	// Check if pregnancy is active
+	var pregnancy entity.Pregnancy
+	if err := db.First(&pregnancy, kickCount.PregnancyID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pregnancy not found"})
+		return
+	}
+
+	if pregnancy.Status != "Active" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pregnancy is not active"})
 		return
 	}
 

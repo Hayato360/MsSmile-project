@@ -82,13 +82,14 @@ const labResultForm = ref({
 })
 
 const pregnancyId = computed(() => {
-  if (!patient.value?.Pregnancies || patient.value.Pregnancies.length === 0) return null
-  return patient.value.Pregnancies[patient.value.Pregnancies.length - 1].ID
+  if (!patient.value?.Pregnancies) return null
+  const active = patient.value.Pregnancies.find((p) => p.status === 'Active')
+  return active ? active.ID : null
 })
 
 const pregnancyData = computed(() => {
-  if (!patient.value?.Pregnancies || patient.value.Pregnancies.length === 0) return null
-  return patient.value.Pregnancies[patient.value.Pregnancies.length - 1]
+  if (!patient.value?.Pregnancies) return null
+  return patient.value.Pregnancies.find((p) => p.status === 'Active')
 })
 
 const calculateGA = () => {
@@ -135,20 +136,27 @@ onMounted(async () => {
 })
 
 const newPregnancyLMP = ref(new Date().toISOString().split('T')[0])
+const newPregnancyEDC = ref('')
+
+// Watch LMP to auto-calculate EDC
+import { watch } from 'vue'
+watch(newPregnancyLMP, (newValue) => {
+  if (newValue) {
+    const lmp = new Date(newValue)
+    const edc = new Date(lmp)
+    edc.setDate(edc.getDate() + 280) // +280 days
+    newPregnancyEDC.value = edc.toISOString().split('T')[0]
+  }
+})
 
 const createPregnancy = async () => {
   try {
-    const lmpDate = new Date(newPregnancyLMP.value)
-    const edcDate = new Date(lmpDate)
-    edcDate.setMonth(edcDate.getMonth() + 9)
-    edcDate.setDate(edcDate.getDate() + 7)
-
     await api.post('/doctor/pregnancy', {
       PregnantWomanID: parseInt(route.params.id),
-      PregnancyNo: 1,
-      LMP: lmpDate.toISOString(),
-      EDC: edcDate.toISOString(),
-      PrePregnancyWeight: 50,
+      PregnancyNo: (patient.value.Pregnancies?.length || 0) + 1,
+      LMP: new Date(newPregnancyLMP.value).toISOString(),
+      EDC: new Date(newPregnancyEDC.value).toISOString(),
+      PrePregnancyWeight: 50, // Should be input, but keeping simple for now
       Height: 160,
       PrePregnancyBMI: 19.5,
     })
@@ -158,7 +166,50 @@ const createPregnancy = async () => {
     patient.value = patientRes.data
   } catch (error) {
     console.error('Error:', error)
-    alert('เกิดข้อผิดพลาด')
+    alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
+  }
+}
+
+const showEndPregnancyModal = ref(false)
+const endPregnancyForm = ref({
+  DeliveryDate: new Date().toISOString().split('T')[0],
+  DeliveryMethod: 'Normal',
+  BirthWeight: '',
+  Sex: 'Male',
+  DeliveryPlace: '',
+  Complications: 'None',
+  ChildStatus: 'Healthy',
+  GestationalAge: '',
+})
+
+const endPregnancy = async () => {
+  if (!pregnancyId.value) return
+
+  try {
+    await api.post(`/doctor/pregnancy/${pregnancyId.value}/end`, {
+      delivery_date: new Date(endPregnancyForm.value.DeliveryDate).toISOString(),
+      delivery_method: endPregnancyForm.value.DeliveryMethod,
+      birth_weight: parseFloat(endPregnancyForm.value.BirthWeight),
+      sex: endPregnancyForm.value.Sex,
+      delivery_place: endPregnancyForm.value.DeliveryPlace,
+      complications: endPregnancyForm.value.Complications,
+      child_status: endPregnancyForm.value.ChildStatus,
+      gestational_age: parseInt(endPregnancyForm.value.GestationalAge),
+    })
+
+    alert('จบการตั้งครรภ์เรียบร้อยแล้ว')
+    showEndPregnancyModal.value = false
+    
+    // Refresh data
+    const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
+    patient.value = patientRes.data
+    
+    const prevPregRes = await api.get(`/doctor/patient/${route.params.id}/previous-pregnancies`)
+    previousPregnancies.value = prevPregRes.data.data || []
+
+  } catch (error) {
+    console.error('Error:', error)
+    alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
   }
 }
 
@@ -376,11 +427,22 @@ const calculateAge = (birthDate) => {
               <label>วันประจำเดือนหมดครั้งสุดท้าย (LMP)</label>
               <input type="date" v-model="newPregnancyLMP" />
             </div>
+            <div class="form-group">
+              <label>วันกำหนดคลอด (EDC)</label>
+              <input type="date" v-model="newPregnancyEDC" />
+            </div>
             <button @click="createPregnancy" class="btn-create">สร้างข้อมูลการตั้งครรภ์</button>
           </div>
         </div>
 
-        <form v-else @submit.prevent="saveVisit">
+        <div v-else>
+          <div class="flex justify-between items-center mb-4">
+            <h3>บันทึกการตรวจ</h3>
+            <button @click="showEndPregnancyModal = true" class="btn-end-pregnancy">
+              จบการตั้งครรภ์
+            </button>
+          </div>
+          <form @submit.prevent="saveVisit">
           <div class="form-grid">
             <div>
               <label>วันที่ตรวจ *</label>
@@ -470,6 +532,7 @@ const calculateAge = (birthDate) => {
           </button>
         </form>
       </div>
+    </div>
 
       <!-- Medical History Tab -->
       <div v-if="activeTab === 'medical'" class="card">
@@ -914,6 +977,65 @@ const calculateAge = (birthDate) => {
         </div>
       </div>
     </div>
+    <!-- End Pregnancy Modal -->
+    <div v-if="showEndPregnancyModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2>จบการตั้งครรภ์</h2>
+        <form @submit.prevent="endPregnancy">
+          <div class="form-grid">
+            <div>
+              <label>วันที่คลอด *</label>
+              <input type="date" v-model="endPregnancyForm.DeliveryDate" required />
+            </div>
+            <div>
+              <label>อายุครรภ์ (สัปดาห์) *</label>
+              <input type="number" v-model="endPregnancyForm.GestationalAge" required />
+            </div>
+            <div>
+              <label>วิธีการคลอด *</label>
+              <select v-model="endPregnancyForm.DeliveryMethod">
+                <option value="Normal">คลอดธรรมชาติ</option>
+                <option value="C-Section">ผ่าตัดคลอด</option>
+                <option value="Vacuum">เครื่องดูดสุญญากาศ</option>
+              </select>
+            </div>
+            <div>
+              <label>น้ำหนักแรกเกิด (กรัม) *</label>
+              <input type="number" step="0.01" v-model="endPregnancyForm.BirthWeight" required />
+            </div>
+            <div>
+              <label>เพศ *</label>
+              <select v-model="endPregnancyForm.Sex">
+                <option value="Male">ชาย</option>
+                <option value="Female">หญิง</option>
+              </select>
+            </div>
+            <div>
+              <label>สถานที่คลอด</label>
+              <input type="text" v-model="endPregnancyForm.DeliveryPlace" />
+            </div>
+            <div>
+              <label>ภาวะแทรกซ้อน</label>
+              <input type="text" v-model="endPregnancyForm.Complications" />
+            </div>
+            <div>
+              <label>สถานะทารก</label>
+              <select v-model="endPregnancyForm.ChildStatus">
+                <option value="Healthy">แข็งแรง</option>
+                <option value="Deceased">เสียชีวิต</option>
+                <option value="Other">อื่นๆ</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-4 justify-end">
+            <button type="button" @click="showEndPregnancyModal = false" class="btn-cancel">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-save">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1079,7 +1201,7 @@ const calculateAge = (birthDate) => {
   padding: 0.625rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   transition: border-color 0.2s;
 }
 
@@ -1087,17 +1209,16 @@ const calculateAge = (birthDate) => {
 .form-grid select:focus,
 .form-grid textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.btn-save,
-.btn-create {
+.btn-save {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: var(--color-primary);
+  background: #10b981;
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -1106,9 +1227,62 @@ const calculateAge = (birthDate) => {
   transition: background-color 0.2s;
 }
 
+.btn-save:hover {
+  background: #059669;
+}
+
+/* End Pregnancy Button */
+.btn-end-pregnancy {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.btn-end-pregnancy:hover {
+  background-color: #dc2626;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
 .btn-save:hover,
 .btn-create:hover {
-  background: #65a30d; /* Darker green */
+  background: #059669;
 }
 
 /* Table Styles */

@@ -14,6 +14,7 @@ type Pregnancy struct {
 	PregnantWoman   *PregnantWoman `gorm:"references:ID" valid:"-"`
 
 	PregnancyNo        int
+	Status             string    `json:"status"` // Active, Ended
 	LMP                time.Time // Last Menstrual Period
 	EDC                time.Time // Expected Date of Confinement
 	PrePregnancyWeight float64

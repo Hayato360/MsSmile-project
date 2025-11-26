@@ -50,6 +50,7 @@ func main() {
 		protected.GET("/doctor/patient/:patientId/visits", controller.GetPatientVisits)
 		protected.POST("/doctor/antenatal-visit", controller.DoctorCreateAntenatalVisit)
 		protected.POST("/doctor/pregnancy", controller.DoctorCreatePregnancy)
+		protected.POST("/doctor/pregnancy/:id/end", controller.EndPregnancy)
 
 		// Doctor Health Data Routes
 		protected.POST("/doctor/medical-history", controller.DoctorCreateMedicalHistory)
@@ -62,6 +63,8 @@ func main() {
 
 		// Profile Routes
 		protected.PUT("/profile/husband", controller.UpdateHusband)
+		protected.PUT("/profile/personal", controller.UpdatePersonalProfile)
+		protected.PUT("/profile/medical-history", controller.UpdateMyMedicalHistory)
 	}
 
 

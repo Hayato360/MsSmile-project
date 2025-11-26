@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Smile, Calendar, Activity } from 'lucide-vue-next'
+import { Smile, Calendar, Activity, Baby } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 
@@ -10,7 +10,7 @@ const loading = ref(true)
 
 const pregnancyData = computed(() => {
   if (!authStore.user?.Pregnancies || authStore.user.Pregnancies.length === 0) return null
-  return authStore.user.Pregnancies[authStore.user.Pregnancies.length - 1]
+  return authStore.user.Pregnancies.find((p) => p.status === 'Active') || null
 })
 
 const formatDate = (dateString) => {
@@ -66,9 +66,13 @@ onMounted(async () => {
       </div>
     </header>
 
-    <div v-if="!pregnancyData" class="empty-state">
-      <p>ยังไม่มีข้อมูลการตั้งครรภ์</p>
-      <p class="sub">กรุณาติดต่อแพทย์เพื่อสร้างข้อมูลการตั้งครรภ์</p>
+    <div v-if="!pregnancyData" class="empty-state-card">
+      <div class="empty-icon-container">
+        <Baby class="empty-icon" />
+      </div>
+      <h3>ไม่พบข้อมูลการตั้งครรภ์ปัจจุบัน</h3>
+      <p>คุณยังไม่มีข้อมูลการฝากครรภ์ในระบบ หรือการตั้งครรภ์ได้สิ้นสุดลงแล้ว</p>
+      <p class="sub-text">กรุณาติดต่อแพทย์เพื่อสร้างข้อมูลการตั้งครรภ์ใหม่</p>
     </div>
 
     <div v-else class="summary-cards">
@@ -162,19 +166,47 @@ onMounted(async () => {
   color: var(--color-text-light);
   margin: 0.25rem 0 0;
 }
-.empty-state {
+.empty-state-card {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   background: white;
-  border-radius: 0.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
-.empty-state p {
-  color: var(--color-text-light);
-  margin: 0.5rem 0;
+
+.empty-icon-container {
+  background-color: #ecfccb; /* Lime 100 */
+  padding: 1.5rem;
+  border-radius: 50%;
+  margin-bottom: 0.5rem;
 }
-.empty-state .sub {
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  color: #65a30d; /* Lime 600 */
+}
+
+.empty-state-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.empty-state-card p {
+  color: #6b7280;
+  margin: 0;
+  max-width: 500px;
+}
+
+.empty-state-card .sub-text {
   font-size: 0.875rem;
-  color: #999;
+  color: #9ca3af;
 }
 .banner {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
