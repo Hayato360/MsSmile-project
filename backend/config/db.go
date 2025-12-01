@@ -63,4 +63,14 @@ func SetupDatabase() {
 		Age:         25,
 	}
 	db.FirstOrCreate(&Woman, &entity.PregnantWoman{Username: "Mommy"})
+
+	// Seed Vaccine Types
+	vaccineTypes := []entity.VaccineType{
+		{Name: "บาดทะยัก-คอตีบ (dT)"},
+		{Name: "ไข้หวัดใหญ่ (Influenza)"},
+		{Name: "โควิด 19 (Covid-19)"},
+	}
+	for _, vt := range vaccineTypes {
+		db.FirstOrCreate(&vt, entity.VaccineType{Name: vt.Name})
+	}
 }

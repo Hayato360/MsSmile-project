@@ -18,6 +18,9 @@ type Vaccination struct {
 	LastPreviousDateYear   *time.Time
 	Dose1DateDuringPreg    *time.Time
 	Dose2DateDuringPreg    *time.Time
+	Dose3DateDuringPreg    *time.Time
+	IsHistoryUnknown       bool
+	ReasonForNotVaccinating string
 	Remarks                string
 
 	// FK -> VaccineType

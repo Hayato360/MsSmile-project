@@ -147,44 +147,7 @@ func DoctorCreateLabResult(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Created", "data": labResult})
 }
 
-// POST /doctor/vaccination - Create vaccination record
-func DoctorCreateVaccination(c *gin.Context) {
-	var input struct {
-		PregnantWomanID        uint       `json:"PregnantWomanID"`
-		VaccineTypeID          uint       `json:"VaccineTypeID"`
-		IsPreviouslyVaccinated bool       `json:"IsPreviouslyVaccinated"`
-		PreviousDoses          int        `json:"PreviousDoses"`
-		LastPreviousDateYear   *time.Time `json:"LastPreviousDateYear"`
-		Dose1DateDuringPreg    *time.Time `json:"Dose1DateDuringPreg"`
-		Dose2DateDuringPreg    *time.Time `json:"Dose2DateDuringPreg"`
-		Remarks                string     `json:"Remarks"`
-	}
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	db := config.DB()
-
-	vaccination := entity.Vaccination{
-		PregnantWomanID:        &input.PregnantWomanID,
-		VaccineTypeID:          &input.VaccineTypeID,
-		IsPreviouslyVaccinated: input.IsPreviouslyVaccinated,
-		PreviousDoses:          input.PreviousDoses,
-		LastPreviousDateYear:   input.LastPreviousDateYear,
-		Dose1DateDuringPreg:    input.Dose1DateDuringPreg,
-		Dose2DateDuringPreg:    input.Dose2DateDuringPreg,
-		Remarks:                input.Remarks,
-	}
-
-	if err := db.Create(&vaccination).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Created", "data": vaccination})
-}
 
 // GET /doctor/patient/:patientId/medical-history
 func GetPatientMedicalHistory(c *gin.Context) {

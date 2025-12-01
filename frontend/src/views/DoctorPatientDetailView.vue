@@ -62,16 +62,27 @@ const previousPregnancyForm = ref({
   ChildStatus: 'Healthy',
 })
 
+const vaccineTypes = ref([])
+const vaccinations = ref([])
+
 const vaccinationForm = ref({
-  VaccineTypeID: 1,
+  VaccineTypeID: '',
   IsPreviouslyVaccinated: false,
   PreviousDoses: 0,
   LastPreviousDateYear: null,
   Dose1DateDuringPreg: null,
   Dose2DateDuringPreg: null,
+  Dose3DateDuringPreg: null,
+  IsHistoryUnknown: false,
+  ReasonForNotVaccinating: '',
   Remarks: '',
-  IsPreviouslyVaccinated: false, // Duplicate removed
 })
+
+const handleHistoryUnknownChange = (e) => {
+  if (e.target.checked) {
+    vaccinationForm.value.IsPreviouslyVaccinated = false
+  }
+}
 
 const labResultForm = ref({
   TestDate: new Date().toISOString().split('T')[0],
@@ -126,6 +137,17 @@ onMounted(async () => {
     // Load previous pregnancies
     const prevPregRes = await api.get(`/doctor/patient/${patientId}/previous-pregnancies`)
     previousPregnancies.value = prevPregRes.data.data || []
+
+    // Load vaccine types
+    const vacTypesRes = await api.get('/vaccine-types')
+    vaccineTypes.value = vacTypesRes.data.data || []
+    if (vaccineTypes.value.length > 0) {
+      vaccinationForm.value.VaccineTypeID = vaccineTypes.value[0].ID
+    }
+
+    // Load existing vaccinations
+    const vacRes = await api.get(`/vaccinations/pregnant-woman/${patientId}`)
+    vaccinations.value = vacRes.data || []
 
     calculateGA()
   } catch (error) {
@@ -266,8 +288,28 @@ const saveVaccination = async () => {
       Dose2DateDuringPreg: vaccinationForm.value.Dose2DateDuringPreg
         ? new Date(vaccinationForm.value.Dose2DateDuringPreg).toISOString()
         : null,
+      Dose3DateDuringPreg: vaccinationForm.value.Dose3DateDuringPreg
+        ? new Date(vaccinationForm.value.Dose3DateDuringPreg).toISOString()
+        : null,
+      IsHistoryUnknown: vaccinationForm.value.IsHistoryUnknown,
+      ReasonForNotVaccinating: vaccinationForm.value.ReasonForNotVaccinating,
     })
     alert('บันทึกข้อมูลวัคซีนสำเร็จ')
+    
+    // Refresh list
+    const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
+    vaccinations.value = vacRes.data || []
+    
+    // Reset form (optional, but keeping type selected is usually good)
+    vaccinationForm.value.IsPreviouslyVaccinated = false
+    vaccinationForm.value.PreviousDoses = 0
+    vaccinationForm.value.LastPreviousDateYear = null
+    vaccinationForm.value.Dose1DateDuringPreg = null
+    vaccinationForm.value.Dose2DateDuringPreg = null
+    vaccinationForm.value.Dose3DateDuringPreg = null
+    vaccinationForm.value.IsHistoryUnknown = false
+    vaccinationForm.value.ReasonForNotVaccinating = ''
+    vaccinationForm.value.Remarks = ''
   } catch (error) {
     console.error('Error:', error)
     alert('เกิดข้อผิดพลาด')
@@ -840,21 +882,75 @@ const calculateAge = (birthDate) => {
       <!-- Vaccination Tab -->
       <div v-if="activeTab === 'vaccination'" class="card">
         <h2>บันทึกวัคซีน</h2>
+
+        <!-- Vaccination List -->
+        <div class="table-responsive mb-4">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ชนิดวัคซีน</th>
+                <th>ประวัติ</th>
+                <th>เข็มล่าสุด (ปี)</th>
+                <th>Dose 1</th>
+                <th>Dose 2</th>
+                <th>Dose 3</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="vac in vaccinations" :key="vac.ID">
+                <td>{{ vac.VaccineType?.Name }}</td>
+                <td>
+                  <span v-if="vac.IsHistoryUnknown">ไม่ทราบประวัติ</span>
+                  <span v-else-if="vac.IsPreviouslyVaccinated">เคยฉีด ({{ vac.PreviousDoses }} เข็ม)</span>
+                  <span v-else>ไม่เคยฉีด</span>
+                </td>
+                <td>{{ vac.LastPreviousDateYear ? formatDate(vac.LastPreviousDateYear).split(' ').pop() : '-' }}</td>
+                <td>{{ formatDate(vac.Dose1DateDuringPreg) }}</td>
+                <td>{{ formatDate(vac.Dose2DateDuringPreg) }}</td>
+                <td>{{ formatDate(vac.Dose3DateDuringPreg) }}</td>
+                <td>
+                  <span v-if="vac.ReasonForNotVaccinating" class="text-danger">{{ vac.ReasonForNotVaccinating }}</span>
+                  <span v-else>{{ vac.Remarks || '-' }}</span>
+                </td>
+              </tr>
+              <tr v-if="vaccinations.length === 0">
+                <td colspan="7" class="text-center">ไม่มีข้อมูลการฉีดวัคซีน</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>เพิ่มข้อมูลวัคซีน</h3>
         <form @submit.prevent="saveVaccination">
           <div class="form-grid">
-            <div>
-              <label>
-                <input type="checkbox" v-model="vaccinationForm.IsPreviouslyVaccinated" />
-                เคยฉีดวัคซีนมาก่อน
+            <div style="grid-column: 1 / -1">
+              <label>ชนิดวัคซีน</label>
+              <select v-model="vaccinationForm.VaccineTypeID" required>
+                <option v-for="vt in vaccineTypes" :key="vt.ID" :value="vt.ID">
+                  {{ vt.Name }}
+                </option>
+              </select>
+            </div>
+            <div class="input-with-label-offset">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="vaccinationForm.IsPreviouslyVaccinated" :disabled="vaccinationForm.IsHistoryUnknown" />
+                <span>เคยฉีดวัคซีนมาก่อน</span>
+              </label>
+            </div>
+            <div class="input-with-label-offset">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="vaccinationForm.IsHistoryUnknown" @change="handleHistoryUnknownChange" />
+                <span>ไม่ทราบประวัติ</span>
               </label>
             </div>
             <div>
               <label>จำนวนครั้งที่เคยฉีด</label>
-              <input type="number" v-model.number="vaccinationForm.PreviousDoses" />
+              <input type="number" v-model.number="vaccinationForm.PreviousDoses" :disabled="!vaccinationForm.IsPreviouslyVaccinated" />
             </div>
             <div>
-              <label>วันที่ฉีดครั้งสุดท้าย (ก่อนตั้งครรภ์)</label>
-              <input type="date" v-model="vaccinationForm.LastPreviousDateYear" />
+              <label>วันที่ฉีดครั้งสุดท้าย (ปี)</label>
+              <input type="date" v-model="vaccinationForm.LastPreviousDateYear" :disabled="!vaccinationForm.IsPreviouslyVaccinated" />
             </div>
             <div>
               <label>Dose 1 (ครรภ์นี้)</label>
@@ -863,6 +959,14 @@ const calculateAge = (birthDate) => {
             <div>
               <label>Dose 2 (ครรภ์นี้)</label>
               <input type="date" v-model="vaccinationForm.Dose2DateDuringPreg" />
+            </div>
+            <div>
+              <label>Dose 3 (ครรภ์นี้)</label>
+              <input type="date" v-model="vaccinationForm.Dose3DateDuringPreg" />
+            </div>
+            <div style="grid-column: 1 / -1">
+              <label>เหตุผลที่ไม่ได้ฉีด (ถ้ามี)</label>
+              <input type="text" v-model="vaccinationForm.ReasonForNotVaccinating" placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน" />
             </div>
             <div style="grid-column: 1 / -1">
               <label>หมายเหตุ</label>
@@ -1034,6 +1138,7 @@ const calculateAge = (birthDate) => {
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
+
 .tabs button {
   display: flex;
   align-items: center;
@@ -1045,21 +1150,11 @@ const calculateAge = (birthDate) => {
   cursor: pointer;
   font-weight: 500;
 }
+
 .tabs button.active {
   background: var(--color-primary);
   color: white;
   border-color: var(--color-primary);
-}
-.no-pregnancy {
-  text-align: center;
-  padding: 2rem;
-  background: #fff7ed;
-  border-radius: 0.5rem;
-}
-.warning-text {
-  color: #c2410c;
-  font-weight: 600;
-  margin-bottom: 1rem;
 }
 .btn-create {
   padding: 0.75rem 1.5rem;
@@ -1312,37 +1407,6 @@ const calculateAge = (birthDate) => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: var(--color-text);
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 1.1rem;
-  height: 1.1rem;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  background-color: #ecfccb; /* Lime 100 */
-  color: #3f6212; /* Lime 800 */
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
 }
 
 .text-muted {

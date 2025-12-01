@@ -24,50 +24,83 @@ onMounted(async () => {
   }
 })
 
-const getStatusColor = (status) => {
-  if (status === 'ฉีดแล้ว') return 'success'
-  if (status === 'โปรดฉีด') return 'warning'
-  return 'default'
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  if (date.getFullYear() < 1900) return '-'
+  return date.toLocaleDateString('th-TH', {
+    year: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+const formatYear = (dateString) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    if (date.getFullYear() < 1900) return '-'
+    return date.getFullYear() + 543 // Thai Year
 }
 </script>
 
 <template>
   <div class="vaccine-view">
     <header class="page-header">
-      <h2>{{ authStore.user?.full_name || 'คุณแม่' }}</h2>
-      <p v-if="authStore.gestationalAge">อายุครรภ์: {{ authStore.gestationalAge }} สัปดาห์</p>
-      <p v-else class="text-muted">ยังไม่มีข้อมูลครรภ์</p>
+      <h2>ประวัติวัคซีนหญิงตั้งครรภ์</h2>
+      <div class="user-info">
+        <span class="name">{{ authStore.user?.full_name || 'คุณแม่' }}</span>
+        <span v-if="authStore.gestationalAge" class="ga">อายุครรภ์: {{ authStore.gestationalAge }} สัปดาห์</span>
+      </div>
     </header>
 
     <div v-if="loading" class="loading">กำลังโหลดข้อมูล...</div>
 
-    <div v-else-if="vaccinations.length === 0" class="empty-state">
-      <Syringe size="64" class="empty-icon" />
-      <h3>ยังไม่มีข้อมูลการฉีดวัคซีน</h3>
-      <p>กรุณาติดต่อแพทย์เพื่อบันทึกข้อมูลการฉีดวัคซีน</p>
-    </div>
+    <div v-else class="table-container">
+      <table class="vaccine-table">
+        <thead>
+          <tr>
+            <th rowspan="2" class="col-vaccine">วัคซีน</th>
+            <th colspan="3" class="col-history">ประวัติการได้รับก่อนตั้งครรภ์</th>
+            <th colspan="4" class="col-current">ในระหว่างการตั้งครรภ์นี้</th>
+          </tr>
+          <tr>
+            <th>เคยฉีด</th>
+            <th>จำนวน (ครั้ง)</th>
+            <th>ครั้งสุดท้าย (ปี)</th>
+            <th>เข็มที่ 1</th>
+            <th>เข็มที่ 2</th>
+            <th>เข็มที่ 3</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="vaccine in vaccinations" :key="vaccine.ID">
+            <td class="vaccine-name">{{ vaccine.VaccineType?.Name || 'ไม่ระบุ' }}</td>
+            
+            <!-- History -->
+            <td class="text-center">
+                <span v-if="vaccine.IsHistoryUnknown">ไม่ทราบ</span>
+                <span v-else-if="vaccine.IsPreviouslyVaccinated">เคย</span>
+                <span v-else>ไม่เคย</span>
+            </td>
+            <td class="text-center">{{ vaccine.IsPreviouslyVaccinated ? vaccine.PreviousDoses : '-' }}</td>
+            <td class="text-center">{{ vaccine.IsPreviouslyVaccinated ? formatYear(vaccine.LastPreviousDateYear) : '-' }}</td>
 
-    <div v-else class="vaccine-cards">
-      <div v-for="vaccine in vaccinations" :key="vaccine.ID" class="card vaccine-card">
-        <div class="vaccine-header">
-          <Shield size="24" />
-          <h3>{{ vaccine.vaccine_name }}</h3>
-        </div>
-        <div class="vaccine-body">
-          <div class="info-row">
-            <span class="label">ประวัติการฉีดวัคซีน:</span>
-            <span class="value">{{ vaccine.vaccination_history || '-' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">เข้ารับวัคซีน (ครรภ์นี้):</span>
-            <span class="value">{{ vaccine.current_pregnancy_date || '-' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">สถานะ:</span>
-            <span :class="['badge', getStatusColor(vaccine.status)]">{{ vaccine.status }}</span>
-          </div>
-        </div>
-      </div>
+            <!-- Current Pregnancy -->
+            <td class="text-center">{{ formatDate(vaccine.Dose1DateDuringPreg) }}</td>
+            <td class="text-center">{{ formatDate(vaccine.Dose2DateDuringPreg) }}</td>
+            <td class="text-center">{{ formatDate(vaccine.Dose3DateDuringPreg) }}</td>
+            
+            <td class="text-center">
+                <span v-if="vaccine.ReasonForNotVaccinating" class="text-danger">{{ vaccine.ReasonForNotVaccinating }}</span>
+                <span v-else>{{ vaccine.Remarks || '-' }}</span>
+            </td>
+          </tr>
+          <tr v-if="vaccinations.length === 0">
+            <td colspan="8" class="text-center py-4 text-muted">ยังไม่มีข้อมูลการฉีดวัคซีน</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
@@ -76,88 +109,82 @@ const getStatusColor = (status) => {
 .vaccine-view {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 1rem;
+  font-family: 'Sarabun', sans-serif;
 }
+
 .page-header {
   margin-bottom: 2rem;
-}
-.page-header h2 {
-  margin: 0;
-}
-.page-header p {
-  color: var(--color-text-light);
-  margin: 0.5rem 0 0;
-}
-.loading,
-.empty-state {
   text-align: center;
-  padding: 4rem 2rem;
+}
+
+.page-header h2 {
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+}
+
+.user-info {
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   background: white;
-  border-radius: 0.5rem;
 }
-.empty-icon {
-  color: var(--color-text-light);
-  margin-bottom: 1rem;
+
+.vaccine-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
 }
-.empty-state h3 {
-  margin: 0 0 0.5rem;
+
+.vaccine-table th,
+.vaccine-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  font-size: 0.95rem;
 }
-.empty-state p {
-  color: var(--color-text-light);
-  margin: 0;
-}
-.vaccine-cards {
-  display: grid;
-  gap: 1.5rem;
-}
-.vaccine-card {
-  padding: 0;
-  overflow: hidden;
-}
-.vaccine-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-.vaccine-header h3 {
-  margin: 0;
-}
-.vaccine-body {
-  padding: 1.5rem;
-}
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--color-border);
-}
-.info-row:last-child {
-  border-bottom: none;
-}
-.label {
-  color: var(--color-text-light);
-}
-.value {
-  font-weight: 500;
-}
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
+
+.vaccine-table th {
+  background-color: #f0f9ff; /* Light Blue */
+  color: #1e3a8a;
   font-weight: 600;
+  text-align: center;
 }
-.badge.success {
-  background: #dcfce7;
-  color: #166534;
+
+.col-history {
+  background-color: #fce7f3 !important; /* Light Pink */
+  color: #831843 !important;
 }
-.badge.warning {
-  background: #fef3c7;
-  color: #92400e;
+
+.col-current {
+  background-color: #fef3c7 !important; /* Light Yellow */
+  color: #92400e !important;
 }
+
+.vaccine-name {
+  font-weight: 500;
+  color: #1f2937;
+  background-color: #f8fafc;
+}
+
+.text-center {
+  text-align: center;
+}
+
 .text-muted {
-  color: var(--color-text-light);
-  font-style: italic;
+  color: #9ca3af;
+}
+
+.text-danger {
+    color: #ef4444;
+}
+
+.py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 </style>
