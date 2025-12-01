@@ -51,7 +51,7 @@ const handleRegister = async () => {
     <div class="register-container">
       <div class="register-card">
         <div class="logo-section">
-          <h1>🌿 Healthcare Center</h1>
+          <h1>🌿 Pregnanzy </h1>
           <p>สมุดฝากครรภ์ดิจิทัล</p>
         </div>
 

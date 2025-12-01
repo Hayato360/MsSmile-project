@@ -251,24 +251,43 @@ const cancelEditHusband = () => {
         </div>
 
         <div v-if="!isEditingMedical" class="display-content">
-          <div class="info-grid">
-            <div class="info-item full-width">
-              <span class="label">โรคประจำตัว</span>
-              <span class="value">{{ medicalForm.ChronicDiseases || 'ไม่มี' }}</span>
-            </div>
-            <div class="info-item full-width">
-              <span class="label">ประวัติการผ่าตัด</span>
-              <span class="value">{{ medicalForm.SurgeryHistory || 'ไม่มี' }}</span>
-            </div>
-            <div class="info-item full-width">
-              <span class="label">ประวัติแพ้ยา/อาหาร</span>
-              <span class="value">{{ medicalForm.DrugAllergies || 'ไม่มี' }}</span>
-            </div>
-            <div class="info-item full-width">
-              <span class="label">โรคทางพันธุกรรม</span>
-              <span class="value">{{ medicalForm.GeneticDiseases || 'ไม่มี' }}</span>
+          <div class="info-section">
+            <h4>ประวัติการเจ็บป่วย</h4>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="label">โรคประจำตัว</span>
+                <div class="tags">
+                  <span v-if="medicalForm.HeartDisease" class="tag">โรคหัวใจ</span>
+                  <span v-if="medicalForm.Thyroid" class="tag">โรคไทรอยด์</span>
+                  <span v-if="medicalForm.ChronicDiseases" class="tag">{{ medicalForm.ChronicDiseases }}</span>
+                  <span v-if="!medicalForm.HeartDisease && !medicalForm.Thyroid && !medicalForm.ChronicDiseases" class="text-muted">-</span>
+                </div>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">ประวัติผ่าตัด</span>
+                <span class="value">{{ medicalForm.SurgeryHistory || '-' }}</span>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">ประวัติแพ้ยา/อาหาร</span>
+                <span class="value">{{ medicalForm.DrugAllergies || '-' }}</span>
+              </div>
             </div>
           </div>
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <h4>ประวัติครอบครัว</h4>
+            <div class="tags">
+              <span v-if="medicalForm.FamilyHistoryHT" class="tag">ความดันโลหิตสูง</span>
+              <span v-if="medicalForm.FamilyHistoryDiabetes" class="tag">เบาหวาน</span>
+              <span v-if="medicalForm.FamilyHistoryThalassemia" class="tag">โลหิตจาง (ธาลัสซีเมีย)</span>
+              <span v-if="medicalForm.FamilyHistoryCongenital" class="tag">พิการแต่กำเนิด</span>
+              <span v-if="medicalForm.OtherFamilyHistory" class="tag">{{ medicalForm.OtherFamilyHistory }}</span>
+              <span v-if="!medicalForm.FamilyHistoryHT && !medicalForm.FamilyHistoryDiabetes && !medicalForm.FamilyHistoryThalassemia && !medicalForm.FamilyHistoryCongenital && !medicalForm.OtherFamilyHistory" class="text-muted">ไม่มีประวัติระบุ</span>
+            </div>
+          </div>
+
           <button @click="isEditingMedical = true" class="btn-edit">
             <Edit size="18" />
             แก้ไขข้อมูล
@@ -276,24 +295,109 @@ const cancelEditHusband = () => {
         </div>
 
         <form v-else @submit.prevent="saveMedical" class="form-content">
-          <div class="form-grid">
-            <div class="form-group full-width">
-              <label>โรคประจำตัว</label>
-              <textarea v-model="medicalForm.ChronicDiseases" rows="2"></textarea>
-            </div>
-            <div class="form-group full-width">
-              <label>ประวัติการผ่าตัด</label>
-              <textarea v-model="medicalForm.SurgeryHistory" rows="2"></textarea>
-            </div>
-            <div class="form-group full-width">
-              <label>ประวัติแพ้ยา/อาหาร</label>
-              <textarea v-model="medicalForm.DrugAllergies" rows="2"></textarea>
-            </div>
-            <div class="form-group full-width">
-              <label>โรคทางพันธุกรรม</label>
-              <textarea v-model="medicalForm.GeneticDiseases" rows="2"></textarea>
+          <!-- Illness History -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติการเจ็บป่วย</h4>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>โรคประจำตัว</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="medicalForm.HeartDisease" />
+                    โรคหัวใจ
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="medicalForm.Thyroid" />
+                    โรคไทรอยด์
+                  </label>
+                </div>
+                <input 
+                  type="text" 
+                  v-model="medicalForm.ChronicDiseases" 
+                  placeholder="ระบุโรคประจำตัวอื่นๆ (ถ้ามี)" 
+                  class="mt-2"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label>ประวัติการผ่าตัด</label>
+                <input type="text" v-model="medicalForm.SurgeryHistory" placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)" />
+              </div>
+
+              <div class="form-group full-width">
+                <label>ประวัติแพ้ยา/อาหาร</label>
+                <input type="text" v-model="medicalForm.DrugAllergies" placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)" />
+              </div>
+              
+               <div class="form-group full-width">
+                <label>โรคทางพันธุกรรม</label>
+                <input type="text" v-model="medicalForm.GeneticDiseases" placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)" />
+              </div>
             </div>
           </div>
+
+          <div class="divider"></div>
+
+          <!-- Family History -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติครอบครัว</h4>
+            <div class="checkbox-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="medicalForm.FamilyHistoryHT" />
+                ความดันโลหิตสูง
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="medicalForm.FamilyHistoryDiabetes" />
+                เบาหวาน
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="medicalForm.FamilyHistoryThalassemia" />
+                โลหิตจาง (ธาลัสซีเมีย)
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="medicalForm.FamilyHistoryCongenital" />
+                พิการแต่กำเนิด
+              </label>
+            </div>
+            <div class="form-group full-width mt-3">
+              <label>ประวัติอื่นๆ</label>
+              <input type="text" v-model="medicalForm.OtherFamilyHistory" placeholder="ระบุประวัติครอบครัวอื่นๆ" />
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Menstruation & Contraception -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติประจำเดือน & การคุมกำเนิด</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>รอบประจำเดือน (วัน)</label>
+                <input type="number" v-model.number="medicalForm.MenstrualCycle" placeholder="28" />
+              </div>
+              <div class="form-group">
+                <label>จำนวนวันที่มีประจำเดือน</label>
+                <input type="number" v-model.number="medicalForm.MenstrualDuration" placeholder="5" />
+              </div>
+              <div class="form-group full-width">
+                <label>ลักษณะประจำเดือน</label>
+                <select v-model="medicalForm.MenstrualCondition">
+                  <option value="ปกติ">ปกติ</option>
+                  <option value="มาไม่สม่ำเสมอ">มาไม่สม่ำเสมอ</option>
+                  <option value="ปวดท้องรุนแรง">ปวดท้องรุนแรง</option>
+                </select>
+              </div>
+              
+              <div class="form-group full-width">
+                <label>การคุมกำเนิดก่อนตั้งครรภ์</label>
+                <div class="input-group">
+                    <input type="text" v-model="medicalForm.ContraceptionBeforeMethod" placeholder="วิธีคุมกำเนิด" />
+                    <input type="text" v-model="medicalForm.ContraceptionBeforeDuration" placeholder="ระยะเวลา" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-actions">
             <button type="button" @click="cancelEditMedical" class="btn-cancel">ยกเลิก</button>
             <button type="submit" :disabled="saving" class="btn-save">
@@ -523,5 +627,97 @@ const cancelEditHusband = () => {
   .info-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* New Styles for Medical History Form */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 2rem 0;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #ecfccb; /* Lime 100 */
+  color: #3f6212; /* Lime 800 */
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
+}
+
+.input-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+select {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  background-color: white;
+  width: 100%;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 </style>

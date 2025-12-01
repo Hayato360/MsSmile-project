@@ -49,14 +49,14 @@ const handleLogout = () => {
         </svg>
       </div>
       <div class="logo-text">
-        <h1 class="app-name">Healthcare Center</h1>
+        <h1 class="app-name">Pregnanzy </h1>
         <span class="app-subtitle">สมุดฝากครรภ์ดิจิทัล</span>
       </div>
     </div>
 
     <div class="user-profile">
       <div class="avatar">
-        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User Avatar" />
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lilly" alt="User Avatar" />
         <div class="status-dot"></div>
       </div>
       <div class="user-info">

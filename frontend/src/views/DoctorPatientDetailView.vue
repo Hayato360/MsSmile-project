@@ -531,242 +531,203 @@ const calculateAge = (birthDate) => {
             บันทึก
           </button>
         </form>
+        </div>
       </div>
-    </div>
 
       <!-- Medical History Tab -->
       <div v-if="activeTab === 'medical'" class="card">
-        <h2>ประวัติสุขภาพ</h2>
+        <div class="card-header">
+          <FileHeart size="24" />
+          <h3>ประวัติสุขภาพ</h3>
+        </div>
 
         <!-- View Mode -->
         <div v-if="!isEditingMedicalHistory">
-          <div class="flex justify-between items-center mb-4">
-            <h3>ประวัติการเจ็บป่วย</h3>
-            <button @click="isEditingMedicalHistory = true" class="btn-edit">แก้ไขข้อมูล</button>
-          </div>
-
-          <div class="view-grid">
-            <div class="view-item">
-              <span class="label">โรคประจำตัว:</span>
-              <span class="value">{{ medicalHistoryForm.ChronicDiseases || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">โรคหัวใจ:</span>
-              <span class="value">{{ medicalHistoryForm.HeartDisease ? 'มี' : 'ไม่มี' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">โรคไทรอยด์:</span>
-              <span class="value">{{ medicalHistoryForm.Thyroid ? 'มี' : 'ไม่มี' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">โรคอื่นๆ:</span>
-              <span class="value">{{ medicalHistoryForm.OtherDiseases || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ประวัติผ่าตัด:</span>
-              <span class="value">{{ medicalHistoryForm.SurgeryHistory || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ผ่าตัดอื่นๆ:</span>
-              <span class="value">{{ medicalHistoryForm.OtherSurgery || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">โรคทางพันธุกรรม:</span>
-              <span class="value">{{ medicalHistoryForm.GeneticDiseases || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">แพ้ยา:</span>
-              <span class="value">{{ medicalHistoryForm.DrugAllergies || '-' }}</span>
+          <div class="info-section">
+            <h4>ประวัติการเจ็บป่วย</h4>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="label">โรคประจำตัว</span>
+                <div class="tags">
+                  <span v-if="medicalHistoryForm.HeartDisease" class="tag">โรคหัวใจ</span>
+                  <span v-if="medicalHistoryForm.Thyroid" class="tag">โรคไทรอยด์</span>
+                  <span v-if="medicalHistoryForm.ChronicDiseases" class="tag">{{ medicalHistoryForm.ChronicDiseases }}</span>
+                  <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{ medicalHistoryForm.OtherDiseases }}</span>
+                  <span v-if="!medicalHistoryForm.HeartDisease && !medicalHistoryForm.Thyroid && !medicalHistoryForm.ChronicDiseases && !medicalHistoryForm.OtherDiseases" class="text-muted">-</span>
+                </div>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">ประวัติผ่าตัด</span>
+                <span class="value">{{ medicalHistoryForm.SurgeryHistory || '-' }}</span>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">ประวัติแพ้ยา/อาหาร</span>
+                <span class="value">{{ medicalHistoryForm.DrugAllergies || '-' }}</span>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">โรคทางพันธุกรรม</span>
+                <span class="value">{{ medicalHistoryForm.GeneticDiseases || '-' }}</span>
+              </div>
             </div>
           </div>
 
-          <h3 class="mt-6">ประวัติครอบครัว</h3>
-          <div class="view-grid">
-            <div class="view-item">
-              <span class="label">ความดันโลหิตสูง:</span>
-              <span class="value">{{ medicalHistoryForm.FamilyHistoryHT ? 'มี' : 'ไม่มี' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">เบาหวาน:</span>
-              <span class="value">{{
-                medicalHistoryForm.FamilyHistoryDiabetes ? 'มี' : 'ไม่มี'
-              }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">โลหิตจาง (ธาลัสซีเมีย):</span>
-              <span class="value">{{
-                medicalHistoryForm.FamilyHistoryThalassemia ? 'มี' : 'ไม่มี'
-              }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">พิการแต่กำเนิด:</span>
-              <span class="value">{{
-                medicalHistoryForm.FamilyHistoryCongenital ? 'มี' : 'ไม่มี'
-              }}</span>
-            </div>
-            <div class="view-item col-span-2">
-              <span class="label">ประวัติอื่นๆ:</span>
-              <span class="value">{{ medicalHistoryForm.OtherFamilyHistory || '-' }}</span>
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <h4>ประวัติครอบครัว</h4>
+            <div class="tags">
+              <span v-if="medicalHistoryForm.FamilyHistoryHT" class="tag">ความดันโลหิตสูง</span>
+              <span v-if="medicalHistoryForm.FamilyHistoryDiabetes" class="tag">เบาหวาน</span>
+              <span v-if="medicalHistoryForm.FamilyHistoryThalassemia" class="tag">โลหิตจาง (ธาลัสซีเมีย)</span>
+              <span v-if="medicalHistoryForm.FamilyHistoryCongenital" class="tag">พิการแต่กำเนิด</span>
+              <span v-if="medicalHistoryForm.OtherFamilyHistory" class="tag">{{ medicalHistoryForm.OtherFamilyHistory }}</span>
+              <span v-if="!medicalHistoryForm.FamilyHistoryHT && !medicalHistoryForm.FamilyHistoryDiabetes && !medicalHistoryForm.FamilyHistoryThalassemia && !medicalHistoryForm.FamilyHistoryCongenital && !medicalHistoryForm.OtherFamilyHistory" class="text-muted">ไม่มีประวัติระบุ</span>
             </div>
           </div>
 
-          <h3 class="mt-6">ประวัติการคุมกำเนิด & ประจำเดือน</h3>
-          <div class="view-grid">
-            <div class="view-item">
-              <span class="label">คุมกำเนิดก่อนตั้งครรภ์ (วิธี):</span>
-              <span class="value">{{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ระยะเวลา:</span>
-              <span class="value">{{ medicalHistoryForm.ContraceptionBeforeDuration || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">คุมกำเนิดครั้งหลังสุด (วิธี):</span>
-              <span class="value">{{ medicalHistoryForm.ContraceptionLastMethod || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ระยะเวลา:</span>
-              <span class="value">{{ medicalHistoryForm.ContraceptionLastDuration || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ประจำเดือนมาทุก (วัน):</span>
-              <span class="value">{{ medicalHistoryForm.MenstrualCycle || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">นานครั้งละ (วัน):</span>
-              <span class="value">{{ medicalHistoryForm.MenstrualDuration || '-' }}</span>
-            </div>
-            <div class="view-item">
-              <span class="label">ความสม่ำเสมอ:</span>
-              <span class="value">{{ medicalHistoryForm.MenstrualCondition || '-' }}</span>
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <h4>ประวัติประจำเดือน & การคุมกำเนิด</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">รอบประจำเดือน</span>
+                <span class="value">{{ medicalHistoryForm.MenstrualCycle ? medicalHistoryForm.MenstrualCycle + ' วัน' : '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">จำนวนวันที่มี</span>
+                <span class="value">{{ medicalHistoryForm.MenstrualDuration ? medicalHistoryForm.MenstrualDuration + ' วัน' : '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">ลักษณะประจำเดือน</span>
+                <span class="value">{{ medicalHistoryForm.MenstrualCondition || '-' }}</span>
+              </div>
+              <div class="info-item full-width">
+                <span class="label">การคุมกำเนิดก่อนตั้งครรภ์</span>
+                <span class="value">
+                  {{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }} 
+                  <span v-if="medicalHistoryForm.ContraceptionBeforeDuration">({{ medicalHistoryForm.ContraceptionBeforeDuration }})</span>
+                </span>
+              </div>
             </div>
           </div>
+
+          <button @click="isEditingMedicalHistory = true" class="btn-edit mt-4">
+            <Edit size="18" />
+            แก้ไขข้อมูล
+          </button>
         </div>
 
         <!-- Edit Mode -->
-        <form v-else @submit.prevent="saveMedicalHistory">
-          <h3>ประวัติการเจ็บป่วย</h3>
-          <div class="form-grid">
-            <div>
-              <label>โรคประจำตัว (ระบุ)</label>
-              <input type="text" v-model="medicalHistoryForm.ChronicDiseases" />
-            </div>
-            <div>
-              <label>
-                <input type="checkbox" v-model="medicalHistoryForm.HeartDisease" />
-                โรคหัวใจ
-              </label>
-            </div>
-            <div>
-              <label>
-                <input type="checkbox" v-model="medicalHistoryForm.Thyroid" />
-                โรคไทรอยด์
-              </label>
-            </div>
-            <div>
-              <label>โรคอื่นๆ</label>
-              <input type="text" v-model="medicalHistoryForm.OtherDiseases" />
-            </div>
-            <div>
-              <label>ประวัติผ่าตัด</label>
-              <input type="text" v-model="medicalHistoryForm.SurgeryHistory" />
-            </div>
-            <div>
-              <label>ผ่าตัดอื่นๆ</label>
-              <input type="text" v-model="medicalHistoryForm.OtherSurgery" />
-            </div>
-            <div>
-              <label>โรคทางพันธุกรรม</label>
-              <input
-                type="text"
-                v-model="medicalHistoryForm.GeneticDiseases"
-                placeholder="ธาลัสซีเมีย"
-              />
-            </div>
-            <div>
-              <label>แพ้ยา</label>
-              <input
-                type="text"
-                v-model="medicalHistoryForm.DrugAllergies"
-                placeholder="Penicillin, Aspirin"
-              />
+        <form v-else @submit.prevent="saveMedicalHistory" class="form-content">
+          <!-- Illness History -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติการเจ็บป่วย</h4>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>โรคประจำตัว</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="medicalHistoryForm.HeartDisease" />
+                    โรคหัวใจ
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="medicalHistoryForm.Thyroid" />
+                    โรคไทรอยด์
+                  </label>
+                </div>
+                <input 
+                  type="text" 
+                  v-model="medicalHistoryForm.ChronicDiseases" 
+                  placeholder="ระบุโรคประจำตัวอื่นๆ (ถ้ามี)" 
+                  class="mt-2"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label>ประวัติการผ่าตัด</label>
+                <input type="text" v-model="medicalHistoryForm.SurgeryHistory" placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)" />
+              </div>
+
+              <div class="form-group full-width">
+                <label>ประวัติแพ้ยา/อาหาร</label>
+                <input type="text" v-model="medicalHistoryForm.DrugAllergies" placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)" />
+              </div>
+              
+               <div class="form-group full-width">
+                <label>โรคทางพันธุกรรม</label>
+                <input type="text" v-model="medicalHistoryForm.GeneticDiseases" placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)" />
+              </div>
             </div>
           </div>
 
-          <h3>ประวัติครอบครัว</h3>
-          <div class="form-grid">
-            <div>
-              <label>
+          <div class="divider"></div>
+
+          <!-- Family History -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติครอบครัว</h4>
+            <div class="checkbox-grid">
+              <label class="checkbox-label">
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryHT" />
                 ความดันโลหิตสูง
               </label>
-            </div>
-            <div>
-              <label>
+              <label class="checkbox-label">
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryDiabetes" />
                 เบาหวาน
               </label>
-            </div>
-            <div>
-              <label>
+              <label class="checkbox-label">
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryThalassemia" />
                 โลหิตจาง (ธาลัสซีเมีย)
               </label>
-            </div>
-            <div>
-              <label>
+              <label class="checkbox-label">
                 <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryCongenital" />
                 พิการแต่กำเนิด
               </label>
             </div>
-            <div style="grid-column: 1 / -1">
+            <div class="form-group full-width mt-3">
               <label>ประวัติอื่นๆ</label>
-              <textarea v-model="medicalHistoryForm.OtherFamilyHistory" rows="2"></textarea>
+              <input type="text" v-model="medicalHistoryForm.OtherFamilyHistory" placeholder="ระบุประวัติครอบครัวอื่นๆ" />
             </div>
           </div>
 
-          <h3>ประวัติการคุมกำเนิด & ประจำเดือน</h3>
-          <div class="form-grid">
-            <div>
-              <label>คุมกำเนิดก่อนตั้งครรภ์ (วิธี)</label>
-              <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeMethod" />
-            </div>
-            <div>
-              <label>ระยะเวลา</label>
-              <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeDuration" />
-            </div>
-            <div>
-              <label>คุมกำเนิดครั้งหลังสุด (วิธี)</label>
-              <input type="text" v-model="medicalHistoryForm.ContraceptionLastMethod" />
-            </div>
-            <div>
-              <label>ระยะเวลา</label>
-              <input type="text" v-model="medicalHistoryForm.ContraceptionLastDuration" />
-            </div>
-            <div>
-              <label>ประจำเดือนมาทุก (วัน)</label>
-              <input type="number" v-model.number="medicalHistoryForm.MenstrualCycle" />
-            </div>
-            <div>
-              <label>นานครั้งละ (วัน)</label>
-              <input type="number" v-model.number="medicalHistoryForm.MenstrualDuration" />
-            </div>
-            <div>
-              <label>ความสม่ำเสมอ</label>
-              <select v-model="medicalHistoryForm.MenstrualCondition">
-                <option>สม่ำเสมอ</option>
-                <option>ไม่สม่ำเสมอ</option>
-              </select>
+          <div class="divider"></div>
+
+          <!-- Menstruation & Contraception -->
+          <div class="form-section">
+            <h4 class="section-title">ประวัติประจำเดือน & การคุมกำเนิด</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>รอบประจำเดือน (วัน)</label>
+                <input type="number" v-model.number="medicalHistoryForm.MenstrualCycle" placeholder="28" />
+              </div>
+              <div class="form-group">
+                <label>จำนวนวันที่มีประจำเดือน</label>
+                <input type="number" v-model.number="medicalHistoryForm.MenstrualDuration" placeholder="5" />
+              </div>
+              <div class="form-group full-width">
+                <label>ลักษณะประจำเดือน</label>
+                <select v-model="medicalHistoryForm.MenstrualCondition">
+                  <option value="ปกติ">ปกติ</option>
+                  <option value="มาไม่สม่ำเสมอ">มาไม่สม่ำเสมอ</option>
+                  <option value="ปวดท้องรุนแรง">ปวดท้องรุนแรง</option>
+                </select>
+              </div>
+              
+              <div class="form-group full-width">
+                <label>การคุมกำเนิดก่อนตั้งครรภ์</label>
+                <div class="input-group">
+                    <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeMethod" placeholder="วิธีคุมกำเนิด" />
+                    <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeDuration" placeholder="ระยะเวลา" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="flex gap-2 mt-4">
+          <div class="form-actions">
+            <button type="button" @click="isEditingMedicalHistory = false" class="btn-cancel">ยกเลิก</button>
             <button type="submit" class="btn-save">
               <Save size="18" />
-              บันทึกประวัติสุขภาพ
-            </button>
-            <button type="button" @click="isEditingMedicalHistory = false" class="btn-cancel">
-              ยกเลิก
+              บันทึก
             </button>
           </div>
         </form>
@@ -1134,9 +1095,8 @@ const calculateAge = (birthDate) => {
 }
 
 .view-item .value {
-  color: #1e293b;
-  font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .btn-edit {
@@ -1324,5 +1284,101 @@ const calculateAge = (birthDate) => {
 
 .text-center {
   text-align: center;
+}
+
+/* New Styles for Medical History Form */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--color-primary);
+  padding-left: 0.75rem;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 2rem 0;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #ecfccb; /* Lime 100 */
+  color: #3f6212; /* Lime 800 */
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.input-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+select {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  background-color: white;
+  width: 100%;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 </style>

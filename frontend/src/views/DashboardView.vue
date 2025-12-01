@@ -29,6 +29,68 @@ const calculateGA = () => {
   return `${weeks} สัปดาห์`
 }
 
+const getGestationalWeeks = () => {
+  if (!pregnancyData.value?.LMP) return 0
+  const lmp = new Date(pregnancyData.value.LMP)
+  const now = new Date()
+  const diffTime = Math.abs(now - lmp)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return Math.floor(diffDays / 7)
+}
+
+const weeklyThemes = [
+  {
+    range: [0, 12],
+    gradient: 'linear-gradient(135deg, #a8e063 0%, #56ab2f 100%)',
+    title: 'ไตรมาสที่ 1: การเริ่มต้น',
+    description: 'ช่วงเวลาสำคัญของการสร้างอวัยวะต่างๆ ของลูกน้อย เซลล์กำลังแบ่งตัวอย่างรวดเร็วเพื่อสร้างรากฐานของชีวิต'
+  },
+  {
+    range: [13, 16],
+    gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+    title: 'การเติบโตของลูกน้อย',
+    description: 'ลูกเริ่มมีการปรับองค์ประกอบร่างกาย เริ่มมีการทำงานของระบบต่างๆ และเริ่มขยับตัวได้แล้ว!'
+  },
+  {
+    range: [17, 26],
+    gradient: 'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)',
+    title: 'ไตรมาสที่ 2: การเติบโตอย่างรวดเร็ว',
+    description: 'ลูกน้อยเริ่มขยับตัวแรงขึ้นจนคุณแม่รู้สึกได้ อวัยวะต่างๆ พัฒนาสมบูรณ์ขึ้นเรื่อยๆ'
+  },
+  {
+    range: [27, 40],
+    gradient: 'linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)',
+    title: 'ไตรมาสที่ 3: โค้งสุดท้าย',
+    description: 'ลูกน้อยกำลังสะสมไขมันและเตรียมความพร้อมสำหรับการลืมตาดูโลกในอีกไม่ช้า'
+  }
+]
+
+const currentWeekInfo = computed(() => {
+  const weeks = getGestationalWeeks()
+  
+  // Specific week overrides (optional, can add more detailed weekly data here)
+  const specificWeeks = {
+    15: {
+      title: 'สัปดาห์ที่ 15: ลูกน้อยเริ่มรับรู้แสง',
+      description: 'แม้เปลือกตาจะยังปิดอยู่ แต่ลูกเริ่มรับรู้แสงสว่างได้แล้วนะ! ขนอ่อนๆ เริ่มขึ้นปกคลุมร่างกาย',
+      gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
+    }
+  }
+
+  if (specificWeeks[weeks]) {
+    return specificWeeks[weeks]
+  }
+
+  // Fallback to range themes
+  const theme = weeklyThemes.find(t => weeks >= t.range[0] && weeks <= t.range[1])
+  
+  return theme || {
+    title: `สัปดาห์ที่ ${weeks}`,
+    description: 'พัฒนาการของลูกน้อยกำลังดำเนินไปอย่างต่อเนื่อง',
+    gradient: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)'
+  }
+})
+
 onMounted(async () => {
   if (authStore.pregnancyId) {
     try {
@@ -55,9 +117,11 @@ onMounted(async () => {
     <header class="page-header">
       <div class="user-summary">
         <img
-          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lilly"
           alt="Avatar"
           class="header-avatar"
+          width="60"
+          height="60"
         />
         <div>
           <h2>{{ authStore.user?.full_name || 'คุณแม่' }}</h2>
@@ -67,12 +131,18 @@ onMounted(async () => {
     </header>
 
     <div v-if="!pregnancyData" class="empty-state-card">
-      <div class="empty-icon-container">
-        <Baby class="empty-icon" />
+      <div class="empty-content">
+        <div class="empty-icon-wrapper">
+          <Baby class="empty-icon" size="48" />
+        </div>
+        <h3>ยินดีต้อนรับสู่ Pregnanzy!</h3>
+        <p>เริ่มต้นการเดินทางที่แสนพิเศษของคุณกับเรา</p>
+        
+        <div class="info-box">
+          <p>ขณะนี้คุณยังไม่มีข้อมูลการฝากครรภ์ในระบบ</p>
+          <p class="sub-text">กรุณาติดต่อแพทย์เพื่อสร้างสมุดฝากครรภ์ดิจิทัลของคุณ</p>
+        </div>
       </div>
-      <h3>ไม่พบข้อมูลการตั้งครรภ์ปัจจุบัน</h3>
-      <p>คุณยังไม่มีข้อมูลการฝากครรภ์ในระบบ หรือการตั้งครรภ์ได้สิ้นสุดลงแล้ว</p>
-      <p class="sub-text">กรุณาติดต่อแพทย์เพื่อสร้างข้อมูลการตั้งครรภ์ใหม่</p>
     </div>
 
     <div v-else class="summary-cards">
@@ -101,115 +171,22 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="pregnancyData" class="card banner">
+    <div v-if="pregnancyData" class="card banner" :style="{ background: currentWeekInfo.gradient }">
       <div class="banner-content">
-        <h3>การเดินโลของลูกน้อย</h3>
-        <p>
-          สัปดาห์ที่ {{ calculateGA() }} ลูกเริ่มมีการปรับองค์ประกอบก่อนเหมือนกับจริง
-          เริ่มมีการทำงานได้แล้วด้วยเอ้อ!
-        </p>
-        <button class="btn-primary">อ่านเพิ่มเติ่ม</button>
+        <h3>{{ currentWeekInfo.title }}</h3>
+        <p>{{ currentWeekInfo.description }}</p>
+        <button class="btn-primary">อ่านเพิ่มเติม</button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem;
-}
-.page-header {
-  margin-bottom: 2rem;
-}
-.user-summary {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.header-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 2px solid var(--color-primary);
-}
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-.summary-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 2rem;
-  border-left: 4px solid;
-}
-.summary-card.green {
-  border-left-color: var(--color-primary);
-}
-.summary-card.orange {
-  border-left-color: #f97316;
-}
-.summary-card.blue {
-  border-left-color: #3b82f6;
-}
-.summary-card h3 {
-  font-size: 1.5rem;
-  margin: 0;
-}
-.summary-card p {
-  color: var(--color-text-light);
-  margin: 0.25rem 0 0;
-}
-.empty-state-card {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.empty-icon-container {
-  background-color: #ecfccb; /* Lime 100 */
-  padding: 1.5rem;
-  border-radius: 50%;
-  margin-bottom: 0.5rem;
-}
-
-.empty-icon {
-  width: 48px;
-  height: 48px;
-  color: #65a30d; /* Lime 600 */
-}
-
-.empty-state-card h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-}
-
-.empty-state-card p {
-  color: #6b7280;
-  margin: 0;
-  max-width: 500px;
-}
-
-.empty-state-card .sub-text {
-  font-size: 0.875rem;
-  color: #9ca3af;
-}
+/* ... existing styles ... */
 .banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Default gradient as fallback */
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
   color: white;
+  transition: background 0.5s ease;
 }
 </style>
