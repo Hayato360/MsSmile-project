@@ -78,6 +78,26 @@ const vaccinationForm = ref({
   Remarks: '',
 })
 
+const vaccinationHistoryStatus = computed({
+  get: () => {
+    if (vaccinationForm.value.IsHistoryUnknown) return 'unknown'
+    if (vaccinationForm.value.IsPreviouslyVaccinated) return 'previously'
+    return 'never'
+  },
+  set: (val) => {
+    if (val === 'unknown') {
+      vaccinationForm.value.IsHistoryUnknown = true
+      vaccinationForm.value.IsPreviouslyVaccinated = false
+    } else if (val === 'previously') {
+      vaccinationForm.value.IsHistoryUnknown = false
+      vaccinationForm.value.IsPreviouslyVaccinated = true
+    } else {
+      vaccinationForm.value.IsHistoryUnknown = false
+      vaccinationForm.value.IsPreviouslyVaccinated = false
+    }
+  },
+})
+
 const handleHistoryUnknownChange = (e) => {
   if (e.target.checked) {
     vaccinationForm.value.IsPreviouslyVaccinated = false
@@ -221,14 +241,13 @@ const endPregnancy = async () => {
 
     alert('จบการตั้งครรภ์เรียบร้อยแล้ว')
     showEndPregnancyModal.value = false
-    
+
     // Refresh data
     const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
     patient.value = patientRes.data
-    
+
     const prevPregRes = await api.get(`/doctor/patient/${route.params.id}/previous-pregnancies`)
     previousPregnancies.value = prevPregRes.data.data || []
-
   } catch (error) {
     console.error('Error:', error)
     alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
@@ -295,11 +314,11 @@ const saveVaccination = async () => {
       ReasonForNotVaccinating: vaccinationForm.value.ReasonForNotVaccinating,
     })
     alert('บันทึกข้อมูลวัคซีนสำเร็จ')
-    
+
     // Refresh list
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
     vaccinations.value = vacRes.data || []
-    
+
     // Reset form (optional, but keeping type selected is usually good)
     vaccinationForm.value.IsPreviouslyVaccinated = false
     vaccinationForm.value.PreviousDoses = 0
@@ -485,94 +504,115 @@ const calculateAge = (birthDate) => {
             </button>
           </div>
           <form @submit.prevent="saveVisit">
-          <div class="form-grid">
-            <div>
-              <label>วันที่ตรวจ *</label>
-              <input
-                type="date"
-                v-model="visitForm.VisitDate"
-                @change="onVisitDateChange"
-                required
-              />
+            <div class="visit-form-container">
+              <div class="visit-form-columns">
+                <!-- Left Column -->
+                <div class="visit-form-col">
+                  <div class="form-group">
+                    <label>วันที่ตรวจ *</label>
+                    <input
+                      type="date"
+                      v-model="visitForm.VisitDate"
+                      @change="onVisitDateChange"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>อายุครรภ์ (สัปดาห์) - คำนวณอัตโนมัติ</label>
+                    <input
+                      type="number"
+                      v-model="visitForm.GestationalAge"
+                      readonly
+                      style="background: #f3f4f6"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>น้ำหนัก (kg) *</label>
+                    <input type="number" step="0.1" v-model="visitForm.Weight" required />
+                  </div>
+                  <div class="form-group">
+                    <label>ความดัน *</label>
+                    <input
+                      type="text"
+                      v-model="visitForm.BloodPressure"
+                      placeholder="120/80"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>ส่วนสูงมดลูก (cm)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      v-model="visitForm.HeightFundus"
+                      placeholder="30"
+                    />
+                  </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="visit-form-col">
+                  <div class="form-group">
+                    <label>เสียงหัวใจทารก</label>
+                    <select v-model="visitForm.FetalHeartSound">
+                      <option>ปกติ</option>
+                      <option>ผิดปกติ</option>
+                      <option>ไม่พบ</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>การเคลื่อนไหวทารก</label>
+                    <select v-model="visitForm.FetalMovement">
+                      <option>ปกติ</option>
+                      <option>ผิดปกติ</option>
+                      <option>ไม่พบ</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>โปรตีนในปัสสาวะ</label>
+                    <select v-model="visitForm.UrineProtein">
+                      <option>ไม่พบ</option>
+                      <option>พบ (+)</option>
+                      <option>พบ (++)</option>
+                      <option>พบ (+++)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>น้ำตาลในปัสสาวะ</label>
+                    <select v-model="visitForm.UrineSugar">
+                      <option>ไม่พบ</option>
+                      <option>พบ (+)</option>
+                      <option>พบ (++)</option>
+                      <option>พบ (+++)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>การบวม</label>
+                    <select v-model="visitForm.Swelling">
+                      <option>ไม่บวม</option>
+                      <option>บวมเล็กน้อย</option>
+                      <option>บวมปานกลาง</option>
+                      <option>บวมมาก</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Diagnosis Full Width -->
+              <div class="form-group full-width mt-4">
+                <label>การวินิจฉัยทางการแพทย์</label>
+                <textarea
+                  v-model="visitForm.MedicalDiagnosis"
+                  rows="3"
+                  placeholder="บันทึกการวินิจฉัยและข้อแนะนำ..."
+                ></textarea>
+              </div>
             </div>
-            <div>
-              <label>อายุครรภ์ (สัปดาห์) - คำนวณอัตโนมัติ</label>
-              <input
-                type="number"
-                v-model="visitForm.GestationalAge"
-                readonly
-                style="background: #f3f4f6"
-              />
-            </div>
-            <div>
-              <label>น้ำหนัก (kg) *</label>
-              <input type="number" step="0.1" v-model="visitForm.Weight" required />
-            </div>
-            <div>
-              <label>ความดัน *</label>
-              <input type="text" v-model="visitForm.BloodPressure" placeholder="120/80" required />
-            </div>
-            <div>
-              <label>ส่วนสูงมดลูก (cm)</label>
-              <input type="number" step="0.1" v-model="visitForm.HeightFundus" placeholder="30" />
-            </div>
-            <div>
-              <label>เสียงหัวใจทารก</label>
-              <select v-model="visitForm.FetalHeartSound">
-                <option>ปกติ</option>
-                <option>ผิดปกติ</option>
-                <option>ไม่พบ</option>
-              </select>
-            </div>
-            <div>
-              <label>การเคลื่อนไหวทารก</label>
-              <select v-model="visitForm.FetalMovement">
-                <option>ปกติ</option>
-                <option>ผิดปกติ</option>
-                <option>ไม่พบ</option>
-              </select>
-            </div>
-            <div>
-              <label>โปรตีนในปัสสาวะ</label>
-              <select v-model="visitForm.UrineProtein">
-                <option>ไม่พบ</option>
-                <option>พบ (+)</option>
-                <option>พบ (++)</option>
-                <option>พบ (+++)</option>
-              </select>
-            </div>
-            <div>
-              <label>น้ำตาลในปัสสาวะ</label>
-              <select v-model="visitForm.UrineSugar">
-                <option>ไม่พบ</option>
-                <option>พบ (+)</option>
-                <option>พบ (++)</option>
-                <option>พบ (+++)</option>
-              </select>
-            </div>
-            <div>
-              <label>การบวม</label>
-              <select v-model="visitForm.Swelling">
-                <option>ไม่บวม</option>
-                <option>บวมเล็กน้อย</option>
-                <option>บวมปานกลาง</option>
-                <option>บวมมาก</option>
-              </select>
-            </div>
-            <div style="grid-column: 1 / -1">
-              <label>การวินิจฉัยทางการแพทย์</label>
-              <textarea
-                v-model="visitForm.MedicalDiagnosis"
-                rows="3"
-                placeholder="บันทึกการวินิจฉัยและข้อแนะนำ..."
-              ></textarea>
-            </div>
-          </div>
-          <button type="submit" class="btn-save">
-            <Save size="18" />
-            บันทึก
-          </button>
-        </form>
+            <button type="submit" class="btn-save">
+              <Save size="18" />
+              บันทึก
+            </button>
+          </form>
         </div>
       </div>
 
@@ -591,11 +631,17 @@ const calculateAge = (birthDate) => {
               <div class="info-item full-width">
                 <span class="label">โรคประจำตัว</span>
                 <div class="tags">
-                  <span v-if="medicalHistoryForm.HeartDisease" class="tag">โรคหัวใจ</span>
-                  <span v-if="medicalHistoryForm.Thyroid" class="tag">โรคไทรอยด์</span>
-                  <span v-if="medicalHistoryForm.ChronicDiseases" class="tag">{{ medicalHistoryForm.ChronicDiseases }}</span>
-                  <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{ medicalHistoryForm.OtherDiseases }}</span>
-                  <span v-if="!medicalHistoryForm.HeartDisease && !medicalHistoryForm.Thyroid && !medicalHistoryForm.ChronicDiseases && !medicalHistoryForm.OtherDiseases" class="text-muted">-</span>
+                  <span v-if="medicalHistoryForm.ChronicDiseases" class="tag">{{
+                    medicalHistoryForm.ChronicDiseases
+                  }}</span>
+                  <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{
+                    medicalHistoryForm.OtherDiseases
+                  }}</span>
+                  <span
+                    v-if="!medicalHistoryForm.ChronicDiseases && !medicalHistoryForm.OtherDiseases"
+                    class="text-muted"
+                    >-</span
+                  >
                 </div>
               </div>
               <div class="info-item full-width">
@@ -618,12 +664,12 @@ const calculateAge = (birthDate) => {
           <div class="info-section">
             <h4>ประวัติครอบครัว</h4>
             <div class="tags">
-              <span v-if="medicalHistoryForm.FamilyHistoryHT" class="tag">ความดันโลหิตสูง</span>
-              <span v-if="medicalHistoryForm.FamilyHistoryDiabetes" class="tag">เบาหวาน</span>
-              <span v-if="medicalHistoryForm.FamilyHistoryThalassemia" class="tag">โลหิตจาง (ธาลัสซีเมีย)</span>
-              <span v-if="medicalHistoryForm.FamilyHistoryCongenital" class="tag">พิการแต่กำเนิด</span>
-              <span v-if="medicalHistoryForm.OtherFamilyHistory" class="tag">{{ medicalHistoryForm.OtherFamilyHistory }}</span>
-              <span v-if="!medicalHistoryForm.FamilyHistoryHT && !medicalHistoryForm.FamilyHistoryDiabetes && !medicalHistoryForm.FamilyHistoryThalassemia && !medicalHistoryForm.FamilyHistoryCongenital && !medicalHistoryForm.OtherFamilyHistory" class="text-muted">ไม่มีประวัติระบุ</span>
+              <span v-if="medicalHistoryForm.OtherFamilyHistory" class="tag">{{
+                medicalHistoryForm.OtherFamilyHistory
+              }}</span>
+              <span v-if="!medicalHistoryForm.OtherFamilyHistory" class="text-muted"
+                >ไม่มีประวัติระบุ</span
+              >
             </div>
           </div>
 
@@ -634,11 +680,19 @@ const calculateAge = (birthDate) => {
             <div class="info-grid">
               <div class="info-item">
                 <span class="label">รอบประจำเดือน</span>
-                <span class="value">{{ medicalHistoryForm.MenstrualCycle ? medicalHistoryForm.MenstrualCycle + ' วัน' : '-' }}</span>
+                <span class="value">{{
+                  medicalHistoryForm.MenstrualCycle
+                    ? medicalHistoryForm.MenstrualCycle + ' วัน'
+                    : '-'
+                }}</span>
               </div>
               <div class="info-item">
                 <span class="label">จำนวนวันที่มี</span>
-                <span class="value">{{ medicalHistoryForm.MenstrualDuration ? medicalHistoryForm.MenstrualDuration + ' วัน' : '-' }}</span>
+                <span class="value">{{
+                  medicalHistoryForm.MenstrualDuration
+                    ? medicalHistoryForm.MenstrualDuration + ' วัน'
+                    : '-'
+                }}</span>
               </div>
               <div class="info-item">
                 <span class="label">ลักษณะประจำเดือน</span>
@@ -647,8 +701,10 @@ const calculateAge = (birthDate) => {
               <div class="info-item full-width">
                 <span class="label">การคุมกำเนิดก่อนตั้งครรภ์</span>
                 <span class="value">
-                  {{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }} 
-                  <span v-if="medicalHistoryForm.ContraceptionBeforeDuration">({{ medicalHistoryForm.ContraceptionBeforeDuration }})</span>
+                  {{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }}
+                  <span v-if="medicalHistoryForm.ContraceptionBeforeDuration"
+                    >({{ medicalHistoryForm.ContraceptionBeforeDuration }})</span
+                  >
                 </span>
               </div>
             </div>
@@ -668,37 +724,38 @@ const calculateAge = (birthDate) => {
             <div class="form-grid">
               <div class="form-group full-width">
                 <label>โรคประจำตัว</label>
-                <div class="checkbox-group">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="medicalHistoryForm.HeartDisease" />
-                    โรคหัวใจ
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="medicalHistoryForm.Thyroid" />
-                    โรคไทรอยด์
-                  </label>
-                </div>
-                <input 
-                  type="text" 
-                  v-model="medicalHistoryForm.ChronicDiseases" 
-                  placeholder="ระบุโรคประจำตัวอื่นๆ (ถ้ามี)" 
-                  class="mt-2"
-                />
+                <textarea
+                  v-model="medicalHistoryForm.ChronicDiseases"
+                  rows="3"
+                  placeholder="ระบุโรคประจำตัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
+                ></textarea>
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติการผ่าตัด</label>
-                <input type="text" v-model="medicalHistoryForm.SurgeryHistory" placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalHistoryForm.SurgeryHistory"
+                  placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)"
+                />
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติแพ้ยา/อาหาร</label>
-                <input type="text" v-model="medicalHistoryForm.DrugAllergies" placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalHistoryForm.DrugAllergies"
+                  placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)"
+                />
               </div>
-              
-               <div class="form-group full-width">
+
+              <div class="form-group full-width">
                 <label>โรคทางพันธุกรรม</label>
-                <input type="text" v-model="medicalHistoryForm.GeneticDiseases" placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalHistoryForm.GeneticDiseases"
+                  placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)"
+                />
               </div>
             </div>
           </div>
@@ -708,27 +765,13 @@ const calculateAge = (birthDate) => {
           <!-- Family History -->
           <div class="form-section">
             <h4 class="section-title">ประวัติครอบครัว</h4>
-            <div class="checkbox-grid">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryHT" />
-                ความดันโลหิตสูง
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryDiabetes" />
-                เบาหวาน
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryThalassemia" />
-                โลหิตจาง (ธาลัสซีเมีย)
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalHistoryForm.FamilyHistoryCongenital" />
-                พิการแต่กำเนิด
-              </label>
-            </div>
             <div class="form-group full-width mt-3">
-              <label>ประวัติอื่นๆ</label>
-              <input type="text" v-model="medicalHistoryForm.OtherFamilyHistory" placeholder="ระบุประวัติครอบครัวอื่นๆ" />
+              <label>ประวัติครอบครัว</label>
+              <textarea
+                v-model="medicalHistoryForm.OtherFamilyHistory"
+                rows="3"
+                placeholder="ระบุประวัติครอบครัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
+              ></textarea>
             </div>
           </div>
 
@@ -740,11 +783,19 @@ const calculateAge = (birthDate) => {
             <div class="form-grid">
               <div class="form-group">
                 <label>รอบประจำเดือน (วัน)</label>
-                <input type="number" v-model.number="medicalHistoryForm.MenstrualCycle" placeholder="28" />
+                <input
+                  type="number"
+                  v-model.number="medicalHistoryForm.MenstrualCycle"
+                  placeholder="28"
+                />
               </div>
               <div class="form-group">
                 <label>จำนวนวันที่มีประจำเดือน</label>
-                <input type="number" v-model.number="medicalHistoryForm.MenstrualDuration" placeholder="5" />
+                <input
+                  type="number"
+                  v-model.number="medicalHistoryForm.MenstrualDuration"
+                  placeholder="5"
+                />
               </div>
               <div class="form-group full-width">
                 <label>ลักษณะประจำเดือน</label>
@@ -754,19 +805,29 @@ const calculateAge = (birthDate) => {
                   <option value="ปวดท้องรุนแรง">ปวดท้องรุนแรง</option>
                 </select>
               </div>
-              
+
               <div class="form-group full-width">
                 <label>การคุมกำเนิดก่อนตั้งครรภ์</label>
                 <div class="input-group">
-                    <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeMethod" placeholder="วิธีคุมกำเนิด" />
-                    <input type="text" v-model="medicalHistoryForm.ContraceptionBeforeDuration" placeholder="ระยะเวลา" />
+                  <input
+                    type="text"
+                    v-model="medicalHistoryForm.ContraceptionBeforeMethod"
+                    placeholder="วิธีคุมกำเนิด"
+                  />
+                  <input
+                    type="text"
+                    v-model="medicalHistoryForm.ContraceptionBeforeDuration"
+                    placeholder="ระยะเวลา"
+                  />
                 </div>
               </div>
             </div>
           </div>
 
           <div class="form-actions">
-            <button type="button" @click="isEditingMedicalHistory = false" class="btn-cancel">ยกเลิก</button>
+            <button type="button" @click="isEditingMedicalHistory = false" class="btn-cancel">
+              ยกเลิก
+            </button>
             <button type="submit" class="btn-save">
               <Save size="18" />
               บันทึก
@@ -902,15 +963,25 @@ const calculateAge = (birthDate) => {
                 <td>{{ vac.VaccineType?.Name }}</td>
                 <td>
                   <span v-if="vac.IsHistoryUnknown">ไม่ทราบประวัติ</span>
-                  <span v-else-if="vac.IsPreviouslyVaccinated">เคยฉีด ({{ vac.PreviousDoses }} เข็ม)</span>
+                  <span v-else-if="vac.IsPreviouslyVaccinated"
+                    >เคยฉีด ({{ vac.PreviousDoses }} เข็ม)</span
+                  >
                   <span v-else>ไม่เคยฉีด</span>
                 </td>
-                <td>{{ vac.LastPreviousDateYear ? formatDate(vac.LastPreviousDateYear).split(' ').pop() : '-' }}</td>
+                <td>
+                  {{
+                    vac.LastPreviousDateYear
+                      ? formatDate(vac.LastPreviousDateYear).split(' ').pop()
+                      : '-'
+                  }}
+                </td>
                 <td>{{ formatDate(vac.Dose1DateDuringPreg) }}</td>
                 <td>{{ formatDate(vac.Dose2DateDuringPreg) }}</td>
                 <td>{{ formatDate(vac.Dose3DateDuringPreg) }}</td>
                 <td>
-                  <span v-if="vac.ReasonForNotVaccinating" class="text-danger">{{ vac.ReasonForNotVaccinating }}</span>
+                  <span v-if="vac.ReasonForNotVaccinating" class="text-danger">{{
+                    vac.ReasonForNotVaccinating
+                  }}</span>
                   <span v-else>{{ vac.Remarks || '-' }}</span>
                 </td>
               </tr>
@@ -932,25 +1003,29 @@ const calculateAge = (birthDate) => {
                 </option>
               </select>
             </div>
-            <div class="input-with-label-offset">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="vaccinationForm.IsPreviouslyVaccinated" :disabled="vaccinationForm.IsHistoryUnknown" />
-                <span>เคยฉีดวัคซีนมาก่อน</span>
-              </label>
-            </div>
-            <div class="input-with-label-offset">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="vaccinationForm.IsHistoryUnknown" @change="handleHistoryUnknownChange" />
-                <span>ไม่ทราบประวัติ</span>
-              </label>
+            <div class="input-with-label-offset" style="grid-column: 1 / -1">
+              <label>ประวัติการได้รับวัคซีน</label>
+              <select v-model="vaccinationHistoryStatus">
+                <option value="never">ไม่เคยฉีด</option>
+                <option value="previously">เคยฉีดวัคซีนมาก่อน</option>
+                <option value="unknown">ไม่ทราบประวัติ</option>
+              </select>
             </div>
             <div>
               <label>จำนวนครั้งที่เคยฉีด</label>
-              <input type="number" v-model.number="vaccinationForm.PreviousDoses" :disabled="!vaccinationForm.IsPreviouslyVaccinated" />
+              <input
+                type="number"
+                v-model.number="vaccinationForm.PreviousDoses"
+                :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+              />
             </div>
             <div>
               <label>วันที่ฉีดครั้งสุดท้าย (ปี)</label>
-              <input type="date" v-model="vaccinationForm.LastPreviousDateYear" :disabled="!vaccinationForm.IsPreviouslyVaccinated" />
+              <input
+                type="date"
+                v-model="vaccinationForm.LastPreviousDateYear"
+                :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+              />
             </div>
             <div>
               <label>Dose 1 (ครรภ์นี้)</label>
@@ -966,7 +1041,11 @@ const calculateAge = (birthDate) => {
             </div>
             <div style="grid-column: 1 / -1">
               <label>เหตุผลที่ไม่ได้ฉีด (ถ้ามี)</label>
-              <input type="text" v-model="vaccinationForm.ReasonForNotVaccinating" placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน" />
+              <input
+                type="text"
+                v-model="vaccinationForm.ReasonForNotVaccinating"
+                placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน"
+              />
             </div>
             <div style="grid-column: 1 / -1">
               <label>หมายเหตุ</label>
@@ -1031,14 +1110,35 @@ const calculateAge = (birthDate) => {
       <!-- Visit History -->
       <div v-if="activeTab === 'visits'" class="card">
         <h2>ประวัติการตรวจ</h2>
-        <div v-if="visits.length === 0">ยังไม่มีบันทึก</div>
-        <div v-else v-for="visit in visits" :key="visit.ID" class="visit-item">
-          <div class="visit-header">
-            <Calendar size="16" />
-            {{ formatDate(visit.VisitDate) }}
-            <span class="badge">GA: {{ visit.GestationalAge }} สัปดาห์</span>
-          </div>
-          <div>น้ำหนัก: {{ visit.Weight }} kg | ความดัน: {{ visit.BloodPressure }}</div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>อายุครรภ์</th>
+                <th>น้ำหนัก (กก.)</th>
+                <th>ความดัน</th>
+                <th>เสียงหัวใจทารก</th>
+                <th>การเคลื่อนไหว</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="visit in visits" :key="visit.ID">
+                <td>{{ formatDate(visit.VisitDate) }}</td>
+                <td>{{ visit.GestationalAge }} สัปดาห์</td>
+                <td>{{ visit.Weight }}</td>
+                <td>{{ visit.BloodPressure }}</td>
+                <td>{{ visit.FetalHeartSound }}</td>
+                <td>{{ visit.FetalMovement }}</td>
+                <td>{{ visit.MedicalDiagnosis || '-' }}</td>
+              </tr>
+              <tr v-if="visits.length === 0">
+                <td colspan="7" class="text-center">ยังไม่มีบันทึก</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1325,7 +1425,9 @@ const calculateAge = (birthDate) => {
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .modal-content h2 {
@@ -1444,5 +1546,51 @@ select {
 select:focus {
   outline: none;
   border-color: var(--color-primary);
+}
+
+/* Visit Form 2-Column Layout */
+.visit-form-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .visit-form-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.visit-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>

@@ -257,10 +257,17 @@ const cancelEditHusband = () => {
               <div class="info-item full-width">
                 <span class="label">โรคประจำตัว</span>
                 <div class="tags">
-                  <span v-if="medicalForm.HeartDisease" class="tag">โรคหัวใจ</span>
-                  <span v-if="medicalForm.Thyroid" class="tag">โรคไทรอยด์</span>
-                  <span v-if="medicalForm.ChronicDiseases" class="tag">{{ medicalForm.ChronicDiseases }}</span>
-                  <span v-if="!medicalForm.HeartDisease && !medicalForm.Thyroid && !medicalForm.ChronicDiseases" class="text-muted">-</span>
+                  <span v-if="medicalForm.ChronicDiseases" class="tag">{{
+                    medicalForm.ChronicDiseases
+                  }}</span>
+                  <span v-if="medicalForm.OtherDiseases" class="tag">{{
+                    medicalForm.OtherDiseases
+                  }}</span>
+                  <span
+                    v-if="!medicalForm.ChronicDiseases && !medicalForm.OtherDiseases"
+                    class="text-muted"
+                    >-</span
+                  >
                 </div>
               </div>
               <div class="info-item full-width">
@@ -279,12 +286,12 @@ const cancelEditHusband = () => {
           <div class="info-section">
             <h4>ประวัติครอบครัว</h4>
             <div class="tags">
-              <span v-if="medicalForm.FamilyHistoryHT" class="tag">ความดันโลหิตสูง</span>
-              <span v-if="medicalForm.FamilyHistoryDiabetes" class="tag">เบาหวาน</span>
-              <span v-if="medicalForm.FamilyHistoryThalassemia" class="tag">โลหิตจาง (ธาลัสซีเมีย)</span>
-              <span v-if="medicalForm.FamilyHistoryCongenital" class="tag">พิการแต่กำเนิด</span>
-              <span v-if="medicalForm.OtherFamilyHistory" class="tag">{{ medicalForm.OtherFamilyHistory }}</span>
-              <span v-if="!medicalForm.FamilyHistoryHT && !medicalForm.FamilyHistoryDiabetes && !medicalForm.FamilyHistoryThalassemia && !medicalForm.FamilyHistoryCongenital && !medicalForm.OtherFamilyHistory" class="text-muted">ไม่มีประวัติระบุ</span>
+              <span v-if="medicalForm.OtherFamilyHistory" class="tag">{{
+                medicalForm.OtherFamilyHistory
+              }}</span>
+              <span v-if="!medicalForm.OtherFamilyHistory" class="text-muted"
+                >ไม่มีประวัติระบุ</span
+              >
             </div>
           </div>
 
@@ -301,37 +308,38 @@ const cancelEditHusband = () => {
             <div class="form-grid">
               <div class="form-group full-width">
                 <label>โรคประจำตัว</label>
-                <div class="checkbox-group">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="medicalForm.HeartDisease" />
-                    โรคหัวใจ
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="medicalForm.Thyroid" />
-                    โรคไทรอยด์
-                  </label>
-                </div>
-                <input 
-                  type="text" 
-                  v-model="medicalForm.ChronicDiseases" 
-                  placeholder="ระบุโรคประจำตัวอื่นๆ (ถ้ามี)" 
-                  class="mt-2"
-                />
+                <textarea
+                  v-model="medicalForm.ChronicDiseases"
+                  rows="3"
+                  placeholder="ระบุโรคประจำตัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
+                ></textarea>
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติการผ่าตัด</label>
-                <input type="text" v-model="medicalForm.SurgeryHistory" placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalForm.SurgeryHistory"
+                  placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)"
+                />
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติแพ้ยา/อาหาร</label>
-                <input type="text" v-model="medicalForm.DrugAllergies" placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalForm.DrugAllergies"
+                  placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)"
+                />
               </div>
-              
-               <div class="form-group full-width">
+
+              <div class="form-group full-width">
                 <label>โรคทางพันธุกรรม</label>
-                <input type="text" v-model="medicalForm.GeneticDiseases" placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)" />
+                <input
+                  type="text"
+                  v-model="medicalForm.GeneticDiseases"
+                  placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)"
+                />
               </div>
             </div>
           </div>
@@ -341,27 +349,13 @@ const cancelEditHusband = () => {
           <!-- Family History -->
           <div class="form-section">
             <h4 class="section-title">ประวัติครอบครัว</h4>
-            <div class="checkbox-grid">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalForm.FamilyHistoryHT" />
-                ความดันโลหิตสูง
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalForm.FamilyHistoryDiabetes" />
-                เบาหวาน
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalForm.FamilyHistoryThalassemia" />
-                โลหิตจาง (ธาลัสซีเมีย)
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="medicalForm.FamilyHistoryCongenital" />
-                พิการแต่กำเนิด
-              </label>
-            </div>
             <div class="form-group full-width mt-3">
-              <label>ประวัติอื่นๆ</label>
-              <input type="text" v-model="medicalForm.OtherFamilyHistory" placeholder="ระบุประวัติครอบครัวอื่นๆ" />
+              <label>ประวัติครอบครัว</label>
+              <textarea
+                v-model="medicalForm.OtherFamilyHistory"
+                rows="3"
+                placeholder="ระบุประวัติครอบครัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
+              ></textarea>
             </div>
           </div>
 
@@ -377,7 +371,11 @@ const cancelEditHusband = () => {
               </div>
               <div class="form-group">
                 <label>จำนวนวันที่มีประจำเดือน</label>
-                <input type="number" v-model.number="medicalForm.MenstrualDuration" placeholder="5" />
+                <input
+                  type="number"
+                  v-model.number="medicalForm.MenstrualDuration"
+                  placeholder="5"
+                />
               </div>
               <div class="form-group full-width">
                 <label>ลักษณะประจำเดือน</label>
@@ -387,12 +385,20 @@ const cancelEditHusband = () => {
                   <option value="ปวดท้องรุนแรง">ปวดท้องรุนแรง</option>
                 </select>
               </div>
-              
+
               <div class="form-group full-width">
                 <label>การคุมกำเนิดก่อนตั้งครรภ์</label>
                 <div class="input-group">
-                    <input type="text" v-model="medicalForm.ContraceptionBeforeMethod" placeholder="วิธีคุมกำเนิด" />
-                    <input type="text" v-model="medicalForm.ContraceptionBeforeDuration" placeholder="ระยะเวลา" />
+                  <input
+                    type="text"
+                    v-model="medicalForm.ContraceptionBeforeMethod"
+                    placeholder="วิธีคุมกำเนิด"
+                  />
+                  <input
+                    type="text"
+                    v-model="medicalForm.ContraceptionBeforeDuration"
+                    placeholder="ระยะเวลา"
+                  />
                 </div>
               </div>
             </div>
@@ -666,7 +672,7 @@ const cancelEditHusband = () => {
   color: var(--color-text);
 }
 
-.checkbox-label input[type="checkbox"] {
+.checkbox-label input[type='checkbox'] {
   width: 1.1rem;
   height: 1.1rem;
   accent-color: var(--color-primary);

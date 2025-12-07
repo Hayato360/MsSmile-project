@@ -128,30 +128,14 @@ const formatDate = (dateString) => {
       <!-- Section 3: Medical History Checkboxes -->
       <div class="card section-card">
         <h3>ประวัติเจ็บป่วยของหญิงตั้งครรภ์</h3>
-        <div class="checkbox-grid">
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.ChronicDiseases" disabled />
-            <label>เบาหวาน</label>
+        <div class="info-grid">
+          <div class="info-group full-width">
+            <label>โรคประจำตัว:</label>
+            <span>{{ store.history.ChronicDiseases || '-' }}</span>
           </div>
-          <div class="checkbox-item">
-            <input
-              type="checkbox"
-              :checked="store.history.ChronicDiseases?.includes('ความดัน')"
-              disabled
-            />
-            <label>ความดันโลหิตสูง</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.HeartDisease" disabled />
-            <label>โรคหัวใจ</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.Thyroid" disabled />
-            <label>ไทรอยด์</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="!!store.history.OtherDiseases" disabled />
-            <label>อื่นๆ: {{ store.history.OtherDiseases || '-' }}</label>
+          <div class="info-group full-width">
+            <label>อื่นๆ:</label>
+            <span>{{ store.history.OtherDiseases || '-' }}</span>
           </div>
         </div>
 
@@ -173,26 +157,10 @@ const formatDate = (dateString) => {
       <!-- Section 4: Family History -->
       <div class="card section-card">
         <h3>ประวัติการเจ็บป่วยของบุคคลในครอบครัว</h3>
-        <div class="checkbox-grid">
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.FamilyHistoryThalassemia" disabled />
-            <label>โรคซีด (ธาลัสซีเมีย)</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.FamilyHistoryDiabetes" disabled />
-            <label>เบาหวาน</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.FamilyHistoryHT" disabled />
-            <label>ความดันโลหิตสูง</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="store.history.FamilyHistoryCongenital" disabled />
-            <label>พิการแต่กำเนิด</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" :checked="!!store.history.OtherFamilyHistory" disabled />
-            <label>อื่นๆ: {{ store.history.OtherFamilyHistory || '-' }}</label>
+        <div class="info-grid">
+          <div class="info-group full-width">
+            <label>ประวัติครอบครัว:</label>
+            <span>{{ store.history.OtherFamilyHistory || '-' }}</span>
           </div>
         </div>
       </div>
