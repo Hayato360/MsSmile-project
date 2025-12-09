@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useBabyKickingStore } from '../stores/babyKicking'
 import { useAuthStore } from '../stores/auth'
 import { Bar } from 'vue-chartjs'
+import { AlertTriangle, X } from 'lucide-vue-next'
 import {
   Chart as ChartJS,
   Title,
@@ -18,6 +19,7 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const store = useBabyKickingStore()
 const authStore = useAuthStore()
+const showLowCountModal = ref(false)
 
 // Form Data
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -45,13 +47,21 @@ onMounted(async () => {
 })
 
 const saveKicks = async () => {
+  const total = parseInt(morningKicks.value) + parseInt(noonKicks.value) + parseInt(eveningKicks.value)
+
   await store.addKickRecord({
     date: selectedDate.value,
     morning: parseInt(morningKicks.value),
     noon: parseInt(noonKicks.value),
     evening: parseInt(eveningKicks.value),
   })
-  alert('บันทึกข้อมูลเรียบร้อยแล้ว')
+
+  // Check if total < 10, show modal
+  if (total < 10) {
+    showLowCountModal.value = true
+  } else {
+    alert('บันทึกข้อมูลเรียบร้อยแล้ว')
+  }
 }
 
 // Chart Data
@@ -184,36 +194,9 @@ const getTotal = (record) =>
         <p class="note">*หากรวมกันน้อยกว่า 10 ครั้ง ควรปรึกษาแพทย์</p>
       </div>
 
-      <!-- History Table -->
-      <div class="card history-card">
-        <h3>ประวัติการนับลูกดิ้น</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>วันที่</th>
-              <th>เช้า</th>
-              <th>กลางวัน</th>
-              <th>เย็น</th>
-              <th>รวม</th>
-              <th>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="record in store.kicks.slice().reverse()" :key="record.CountDate">
-              <td>{{ formatThaiDate(record.CountDate) }}</td>
-              <td>{{ record.KickCountMorning }}</td>
-              <td>{{ record.KickCountLunch }}</td>
-              <td>{{ record.KickCountEvening }}</td>
-              <td class="font-bold text-primary">{{ getTotal(record) }}</td>
-              <td>
-                <span class="badge success" v-if="getTotal(record) >= 10">ปกติ</span>
-                <span class="badge warning" v-else>ควรเฝ้าระวัง</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
+
+
 
     <div v-else class="empty-state">
       <div class="empty-icon-wrapper">
@@ -221,6 +204,25 @@ const getTotal = (record) =>
       </div>
       <h3>ยังไม่มีข้อมูลการตั้งครรภ์</h3>
       <p>กรุณาติดต่อแพทย์เพื่อบันทึกข้อมูลการฝากครรภ์ก่อนเริ่มนับลูกดิ้น</p>
+    </div>
+
+    <!-- Low Count Warning Modal -->
+    <div v-if="showLowCountModal" class="modal-overlay">
+        <div class="modal-content warning-modal">
+            <button class="modal-close" @click="showLowCountModal = false">
+                <X size="20" />
+            </button>
+            <div class="modal-icon-wrapper">
+                <AlertTriangle size="48" class="warning-icon" />
+            </div>
+            <h3>ลูกดิ้นน้อยผิดปกติ!</h3>
+            <p class="modal-message">
+                วันนี้ลูกดิ้นรวมกันน้อยกว่า 10 ครั้ง
+                <br>
+                <strong>"ควรรรีบไปพบแพทย์เพื่อตรวจเช็คสุขภาพทารกในครรภ์ทันที"</strong>
+            </p>
+            <button class="btn-warning-action" @click="showLowCountModal = false">รับทราบ</button>
+        </div>
     </div>
   </div>
 </template>
@@ -250,7 +252,7 @@ const getTotal = (record) =>
 
 .content-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1.5rem;
 }
 
@@ -265,12 +267,10 @@ const getTotal = (record) =>
 }
 
 .input-card {
-  grid-column: 1 / 2;
+  grid-column: 1 / -1;
 }
 
-.history-card {
-  grid-column: 2 / -1;
-}
+
 
 @media (max-width: 1024px) {
   .content-grid {
@@ -405,5 +405,95 @@ const getTotal = (record) =>
 .empty-state-card .sub-text {
   font-size: 0.875rem;
   color: #9ca3af;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content.warning-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #ef4444;
+}
+
+.modal-icon-wrapper {
+  background-color: #fee2e2;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.warning-icon {
+  color: #dc2626;
+}
+
+.warning-modal h3 {
+  font-size: 1.5rem;
+  color: #991b1b;
+  margin-bottom: 1rem;
+}
+
+.modal-message {
+  color: #4b5563;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.modal-message strong {
+  display: block;
+  margin-top: 0.5rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.btn-warning-action {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.btn-warning-action:hover {
+  background-color: #b91c1c;
 }
 </style>

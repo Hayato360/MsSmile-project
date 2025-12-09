@@ -15,7 +15,7 @@ func GetDoctorPatients(c *gin.Context) {
 	db := config.DB()
 
 	// For now, return all patients. In production, you'd filter by doctor assignment
-	if err := db.Preload("Pregnancies").Find(&patients).Error; err != nil {
+	if err := db.Preload("Pregnancies").Preload("MedicalHistories").Find(&patients).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}

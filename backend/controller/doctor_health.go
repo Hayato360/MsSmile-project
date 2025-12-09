@@ -50,6 +50,9 @@ func DoctorCreateMedicalHistory(c *gin.Context) {
 		existing.MenstrualDuration = input.MenstrualDuration
 		existing.MenstrualCondition = input.MenstrualCondition
 
+		existing.Preeclampsia = input.Preeclampsia
+		existing.Remarks = input.Remarks
+
 		if err := db.Save(&existing).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

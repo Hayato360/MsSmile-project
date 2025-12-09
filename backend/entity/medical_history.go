@@ -35,4 +35,8 @@ type MedicalHistory struct {
 	MenstrualCycle     int    // Every X days
 	MenstrualDuration  int    // Lasts X days
 	MenstrualCondition string // Regular/Irregular
+
+	// New fields
+	Preeclampsia string
+	Remarks      string
 }

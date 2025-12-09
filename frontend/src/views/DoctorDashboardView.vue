@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Users, Search } from 'lucide-vue-next'
+import { Users, Search, AlertTriangle } from 'lucide-vue-next'
 import api from '../services/api'
 
 const router = useRouter()
@@ -47,6 +47,12 @@ const calculateGA = (pregnancies) => {
 
   return `${weeks} สัปดาห์`
 }
+
+const hasPreeclampsia = (patient) => {
+  if (!patient.MedicalHistories || patient.MedicalHistories.length === 0) return false
+  const history = patient.MedicalHistories[0]
+  return history.Preeclampsia && history.Preeclampsia !== '-'
+}
 </script>
 
 <template>
@@ -90,7 +96,14 @@ const calculateGA = (pregnancies) => {
         <tbody>
           <tr v-for="patient in filteredPatients" :key="patient.ID">
             <td>{{ patient.hn }}</td>
-            <td>{{ patient.full_name }}</td>
+            <td>
+              <div class="patient-name-wrapper">
+                {{ patient.full_name }}
+                <div v-if="hasPreeclampsia(patient)" class="warning-badge" title="มีประวัติครรภ์เป็นพิษ">
+                  <AlertTriangle size="16" />
+                </div>
+              </div>
+            </td>
             <td>{{ patient.age }} ปี</td>
             <td>{{ calculateGA(patient.Pregnancies) }}</td>
             <td>{{ patient.phone_number }}</td>
@@ -239,5 +252,21 @@ tbody tr:hover {
   text-align: center;
   padding: 3rem;
   color: var(--color-text-light);
+}
+
+.patient-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.warning-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 4px;
+  border-radius: 50%;
 }
 </style>

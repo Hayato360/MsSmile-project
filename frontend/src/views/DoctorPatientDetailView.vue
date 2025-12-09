@@ -48,6 +48,8 @@ const medicalHistoryForm = ref({
   MenstrualCycle: '',
   MenstrualDuration: '',
   MenstrualCondition: 'สม่ำเสมอ',
+  Preeclampsia: '',
+  Remarks: '',
 })
 
 const previousPregnancies = ref([])
@@ -709,6 +711,10 @@ const formatTags = (str) => {
                 <span class="label">โรคทางพันธุกรรม</span>
                 <span class="value">{{ medicalHistoryForm.GeneticDiseases || '-' }}</span>
               </div>
+              <div class="info-item full-width">
+                <span class="label">ครรภ์เป็นพิษ</span>
+                <span class="value">{{ medicalHistoryForm.Preeclampsia || '-' }}</span>
+              </div>
             </div>
           </div>
 
@@ -763,6 +769,13 @@ const formatTags = (str) => {
             </div>
           </div>
 
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <h4>หมายเหตุ</h4>
+             <p class="value">{{ medicalHistoryForm.Remarks || '-' }}</p>
+          </div>
+
           <button @click="isEditingMedicalHistory = true" class="btn-edit mt-4">
             <Edit size="18" />
             แก้ไขข้อมูล
@@ -807,6 +820,15 @@ const formatTags = (str) => {
                   type="text"
                   v-model="medicalHistoryForm.GeneticDiseases"
                   placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>ครรภ์เป็นพิษ</label>
+                <input
+                  type="text"
+                  v-model="medicalHistoryForm.Preeclampsia"
+                  placeholder="ระบุประวัติครรภ์เป็นพิษ (ถ้ามี)"
                 />
               </div>
             </div>
@@ -872,6 +894,20 @@ const formatTags = (str) => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="form-section">
+            <h4 class="section-title">หมายเหตุ</h4>
+            <div class="form-group full-width">
+              <textarea
+                v-model="medicalHistoryForm.Remarks"
+                placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                rows="3"
+                class="form-textarea"
+              ></textarea>
             </div>
           </div>
 
