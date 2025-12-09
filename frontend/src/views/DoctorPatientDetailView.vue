@@ -1,17 +1,54 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical, FileHeart } from 'lucide-vue-next'
+import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical, FileHeart, Clock, MapPin } from 'lucide-vue-next'
 import api from '../services/api'
 import router from '../router'
 import TagInput from '../components/TagInput.vue'
+
 
 const route = useRoute()
 const patient = ref(null)
 const visits = ref([])
 const loading = ref(true)
-const activeTab = ref('visits') // visits, medical, vaccination, lab
+const activeTab = ref('visits') // visits, medical, vaccination, lab, appointment
 const isEditingMedicalHistory = ref(false)
+
+const appointmentForm = ref({
+  Date: '',
+  Time: '09:00',
+  Title: 'นัดตรวจครรภ์ครั้งถัดไป',
+  Location: 'แผนกสูตินารีเวช อาคาร 2'
+})
+
+const createAppointment = async () => {
+  if (!appointmentForm.value.Date) {
+    alert('กรุณาระบุวันที่นัดหมาย')
+    return
+  }
+
+  try {
+    // Combine Date and Time
+    const dateTimeStr = `${appointmentForm.value.Date}T${appointmentForm.value.Time}:00Z`
+    
+    await api.post(`/doctor/patient/${route.params.id}/appointment`, {
+      appointment_date: dateTimeStr,
+      title: appointmentForm.value.Title,
+      location: appointmentForm.value.Location
+    })
+
+    alert('บันทึกการนัดหมายสำเร็จ')
+    
+    // Refresh patient data to see new appointment
+    const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
+    patient.value = patientRes.data
+    
+  } catch (error) {
+    console.error('Error creating appointment:', error)
+    alert('เกิดข้อผิดพลาดในการนัดหมาย')
+  }
+}
+
 
 const visitForm = ref({
   VisitDate: new Date().toISOString().split('T')[0],
@@ -520,6 +557,9 @@ const formatTags = (str) => {
         <button :class="{ active: activeTab === 'medical' }" @click="activeTab = 'medical'">
           <FileText size="18" /> ประวัติสุขภาพ
         </button>
+        <button :class="{ active: activeTab === 'appointment' }" @click="activeTab = 'appointment'">
+          <Clock size="18" /> นัดหมาย
+        </button>
         <button :class="{ active: activeTab === 'vaccination' }" @click="activeTab = 'vaccination'">
           <Syringe size="18" /> วัคซีน
         </button>
@@ -529,6 +569,78 @@ const formatTags = (str) => {
         <button :class="{ active: activeTab === 'prev_preg' }" @click="activeTab = 'prev_preg'">
           <FileText size="18" /> ประวัติครรภ์อดีต
         </button>
+      </div>
+
+      <!-- Appointments Tab -->
+      <div v-if="activeTab === 'appointment'" class="card">
+         <div class="card-header">
+          <Clock size="24" />
+          <h3>การนัดหมาย</h3>
+        </div>
+
+        <!-- Current Active Appointment -->
+        <div v-if="patient.Appointment" class="info-box mb-6">
+          <h4 class="text-lg font-bold mb-2 text-green-700">นัดหมายปัจจุบัน</h4>
+          <div class="info-grid">
+            <div class="full-width flex items-center gap-2">
+              <Calendar class="text-gray-500" size="20"/>
+              <span class="font-medium text-lg">
+                {{ new Date(patient.Appointment.appointment_date || patient.Appointment.AppointmentDate).toLocaleDateString('th-TH', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                }) }}
+              </span>
+            </div>
+             <div class="full-width flex items-center gap-2">
+              <Clock class="text-gray-500" size="20"/>
+              <span class="font-medium text-lg">
+                {{ new Date(patient.Appointment.appointment_date || patient.Appointment.AppointmentDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) }} น.
+              </span>
+            </div>
+             <div class="full-width flex items-center gap-2">
+              <FileText class="text-gray-500" size="20"/>
+              <span>{{ patient.Appointment.title || patient.Appointment.Title }}</span>
+            </div>
+             <div class="full-width flex items-center gap-2">
+              <MapPin class="text-gray-500" size="20"/>
+              <span>{{ patient.Appointment.location || patient.Appointment.Location }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="mb-6 p-4 bg-gray-50 rounded-lg text-gray-500 text-center">
+          ยังไม่มีการนัดหมายในระบบ (สำหรับครั้งถัดไป)
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Create New Appointment -->
+        <h4 class="section-title mt-4">สร้างการนัดหมายใหม่</h4>
+        <form @submit.prevent="createAppointment" class="form-grid">
+            <div class="form-group">
+                <label>วันที่นัดหมาย</label>
+                <input type="date" v-model="appointmentForm.Date" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>เวลา</label>
+                <input type="time" v-model="appointmentForm.Time" required class="form-input">
+            </div>
+             <div class="form-group full-width">
+                <label>หัวข้อการนัดหมาย</label>
+                <input type="text" v-model="appointmentForm.Title" required class="form-input" placeholder="เช่น นัดตรวจครรภ์ครั้งถัดไป">
+            </div>
+             <div class="form-group full-width">
+                <label>สถานที่</label>
+                <input type="text" v-model="appointmentForm.Location" required class="form-input" placeholder="เช่น แผนกสูตินารีเวช">
+            </div>
+
+            <div class="full-width mt-4">
+                <button type="submit" class="btn-save">
+                    <Save size="18" /> บันทึกการนัดหมาย
+                </button>
+            </div>
+        </form>
       </div>
 
       <!-- Visits Tab -->

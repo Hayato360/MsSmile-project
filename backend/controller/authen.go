@@ -182,7 +182,7 @@ func GetMe(c *gin.Context) {
 	// ถ้าไม่พบใน Doctor ค้นหาใน PregnantWoman
 	if !found {
 		var woman entity.PregnantWoman
-		if err := db.Preload("Pregnancies").Preload("Husband").Preload("MedicalHistories").Where("username = ?", username).First(&woman).Error; err == nil {
+		if err := db.Preload("Pregnancies").Preload("Husband").Preload("MedicalHistories").Preload("Appointment").Where("username = ?", username).First(&woman).Error; err == nil {
 			userDetails = woman
 			role = "pregnant"
 			userID = woman.ID

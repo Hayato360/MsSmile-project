@@ -51,6 +51,7 @@ func main() {
 		protected.POST("/doctor/antenatal-visit", controller.DoctorCreateAntenatalVisit)
 		protected.POST("/doctor/pregnancy", controller.DoctorCreatePregnancy)
 		protected.POST("/doctor/pregnancy/:id/end", controller.EndPregnancy)
+		protected.POST("/doctor/patient/:id/appointment", controller.DoctorCreateAppointment)
 
 		// Doctor Health Data Routes
 		protected.POST("/doctor/medical-history", controller.DoctorCreateMedicalHistory)

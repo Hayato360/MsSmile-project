@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/bestiesmile1845/Projecteiei/entity"
 	"gorm.io/driver/sqlite"
@@ -39,6 +40,7 @@ func SetupDatabase() {
 		&entity.AntenatalVisit{},
 		&entity.LabResult{},
 		&entity.FetalKickCount{},
+		&entity.Appointment{},
 	)
 
 	hashedPassword, _ := HashPassword("123456")
@@ -72,5 +74,22 @@ func SetupDatabase() {
 	}
 	for _, vt := range vaccineTypes {
 		db.FirstOrCreate(&vt, entity.VaccineType{Name: vt.Name})
+	}
+
+	// Create Appointment and Assign to Mommy
+	// 25 Nov 2025 09:00:00
+	apptDate, _ := time.Parse("2006-01-02 15:04:05", "2025-11-25 09:00:00")
+	Appt := entity.Appointment{
+		AppointmentDate: apptDate,
+		Title:           "นัดตรวจครรภ์ครั้งถัดไป",
+		Location:        "อาคารผู้ป่วยนอก",
+	}
+	db.FirstOrCreate(&Appt, &entity.Appointment{Title: "นัดตรวจครรภ์ครั้งถัดไป"})
+
+	// Update Mommy
+	var mommy entity.PregnantWoman
+	if err := db.Where("username = ?", "Mommy").First(&mommy).Error; err == nil {
+		mommy.AppointmentID = &Appt.ID
+		db.Save(&mommy)
 	}
 }
