@@ -777,7 +777,7 @@ const calculateAge = (birthDate) => {
                 ></textarea>
               </div>
 
-              <div class="form-group full-width">
+              <div class="form-group">
                 <label>ประวัติการผ่าตัด</label>
                 <input
                   type="text"
@@ -786,7 +786,7 @@ const calculateAge = (birthDate) => {
                 />
               </div>
 
-              <div class="form-group full-width">
+              <div class="form-group">
                 <label>ประวัติแพ้ยา/อาหาร</label>
                 <input
                   type="text"
@@ -795,7 +795,7 @@ const calculateAge = (birthDate) => {
                 />
               </div>
 
-              <div class="form-group full-width">
+              <div class="form-group">
                 <label>โรคทางพันธุกรรม</label>
                 <input
                   type="text"
@@ -1681,6 +1681,10 @@ select:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
 }
 
 .form-actions {
