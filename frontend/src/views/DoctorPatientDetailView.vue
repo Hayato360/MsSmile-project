@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical } from 'lucide-vue-next'
+import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical, FileHeart } from 'lucide-vue-next'
 import api from '../services/api'
 import router from '../router'
+import TagInput from '../components/TagInput.vue'
 
 const route = useRoute()
 const patient = ref(null)
@@ -482,6 +483,11 @@ const calculateAge = (birthDate) => {
   }
   return age
 }
+
+const formatTags = (str) => {
+  if (!str) return []
+  return str.split(/,|\n/).map(t => t.trim()).filter(t => t)
+}
 </script>
 
 <template>
@@ -677,17 +683,18 @@ const calculateAge = (birthDate) => {
               <div class="info-item full-width">
                 <span class="label">โรคประจำตัว</span>
                 <div class="tags">
-                  <span v-if="medicalHistoryForm.ChronicDiseases" class="tag">{{
-                    medicalHistoryForm.ChronicDiseases
-                  }}</span>
-                  <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{
+                  <template v-if="formatTags(medicalHistoryForm.ChronicDiseases).length > 0">
+                    <span v-for="(tag, idx) in formatTags(medicalHistoryForm.ChronicDiseases)" :key="idx" class="tag">
+                      {{ tag }}
+                    </span>
+                  </template>
+                  <span
+                    v-else-if="!medicalHistoryForm.OtherDiseases"
+                    class="text-muted"
+                  >-</span>
+                   <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{
                     medicalHistoryForm.OtherDiseases
                   }}</span>
-                  <span
-                    v-if="!medicalHistoryForm.ChronicDiseases && !medicalHistoryForm.OtherDiseases"
-                    class="text-muted"
-                    >-</span
-                  >
                 </div>
               </div>
               <div class="info-item full-width">
@@ -710,12 +717,12 @@ const calculateAge = (birthDate) => {
           <div class="info-section">
             <h4>ประวัติครอบครัว</h4>
             <div class="tags">
-              <span v-if="medicalHistoryForm.OtherFamilyHistory" class="tag">{{
-                medicalHistoryForm.OtherFamilyHistory
-              }}</span>
-              <span v-if="!medicalHistoryForm.OtherFamilyHistory" class="text-muted"
-                >ไม่มีประวัติระบุ</span
-              >
+               <template v-if="formatTags(medicalHistoryForm.OtherFamilyHistory).length > 0">
+                    <span v-for="(tag, idx) in formatTags(medicalHistoryForm.OtherFamilyHistory)" :key="idx" class="tag">
+                      {{ tag }}
+                    </span>
+              </template>
+              <span v-else class="text-muted">ไม่มีประวัติระบุ</span>
             </div>
           </div>
 
@@ -770,11 +777,10 @@ const calculateAge = (birthDate) => {
             <div class="form-grid">
               <div class="form-group full-width">
                 <label>โรคประจำตัว</label>
-                <textarea
+                <TagInput
                   v-model="medicalHistoryForm.ChronicDiseases"
-                  rows="3"
-                  placeholder="ระบุโรคประจำตัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
-                ></textarea>
+                  placeholder="ระบุโรคประจำตัว (กด Enter เพื่อเพิ่ม)"
+                />
               </div>
 
               <div class="form-group">
@@ -813,11 +819,10 @@ const calculateAge = (birthDate) => {
             <h4 class="section-title">ประวัติครอบครัว</h4>
             <div class="form-group full-width mt-3">
               <label>ประวัติครอบครัว</label>
-              <textarea
+              <TagInput
                 v-model="medicalHistoryForm.OtherFamilyHistory"
-                rows="3"
-                placeholder="ระบุประวัติครอบครัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
-              ></textarea>
+                placeholder="ระบุประวัติครอบครัว (กด Enter เพื่อเพิ่ม)"
+              />
             </div>
           </div>
 
@@ -1681,6 +1686,25 @@ select:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tag Styles for View Mode */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .form-group.full-width {
