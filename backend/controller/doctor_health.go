@@ -112,31 +112,60 @@ func GetPreviousPregnanciesByPregnantWomanID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": pregnancies})
 }
 
-// POST /doctor/lab-result - Create lab result
+// POST /doctor/lab-result - Create lab result with file upload
 func DoctorCreateLabResult(c *gin.Context) {
-	var input struct {
-		PregnancyID  uint      `json:"PregnancyID"`
-		TestDate     time.Time `json:"TestDate"`
-		Hct          float64   `json:"Hct"`
-		Hb           float64   `json:"Hb"`
-		HbTyping     string    `json:"HbTyping"`
-		OtherRemarks string    `json:"OtherRemarks"`
+	// Parse multipart form (32MB limit)
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File too large or invalid multipart form"})
+		return
 	}
 
-	if err := c.ShouldBindJSON(&input); err != nil {
+	// 1. Handle File Upload
+	var filePath string
+	file, err := c.FormFile("File")
+	if err == nil {
+		// Create uploads directory if it doesn't exist (handled by mkdir in most cases, but good to be safe)
+		// Assuming "uploads/lab_results" structure
+		filename := time.Now().Format("20060102150405") + "_" + file.Filename
+		dst := "uploads/lab_results/" + filename
+		if err := c.SaveUploadedFile(file, dst); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+			return
+		}
+		filePath = dst
+	}
+
+	// 2. Bind other fields
+	// Let's use a DTO struct for binding form data
+	
+	// Let's us a DTO struct inside for binding form data
+	var formDto struct {
+		PregnancyID  uint      `form:"PregnancyID"`
+		TestDate     string    `form:"TestDate"` // Date coming as string "2023-01-01"
+		Hct          float64   `form:"Hct"`
+		Hb           float64   `form:"Hb"`
+		HbTyping     string    `form:"HbTyping"`
+		OtherRemarks string    `form:"OtherRemarks"`
+	}
+
+	if err := c.ShouldBind(&formDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Parse Date
+	testDate, _ := time.Parse("2006-01-02", formDto.TestDate)
+
 	db := config.DB()
 
 	labResult := entity.LabResult{
-		PregnancyID:  &input.PregnancyID,
-		TestDate:     input.TestDate,
-		Hct:          input.Hct,
-		Hb:           input.Hb,
-		HbTyping:     input.HbTyping,
-		OtherRemarks: input.OtherRemarks,
+		PregnancyID:  &formDto.PregnancyID,
+		TestDate:     testDate,
+		Hct:          formDto.Hct,
+		Hb:           formDto.Hb,
+		HbTyping:     formDto.HbTyping,
+		OtherRemarks: formDto.OtherRemarks,
+		FilePath:     filePath,
 	}
 
 	if err := db.Create(&labResult).Error; err != nil {
@@ -145,6 +174,20 @@ func DoctorCreateLabResult(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Created", "data": labResult})
+}
+
+// GET /doctor/pregnancy/:pregnancyId/lab-results
+func GetLabResultsByPregnancyID(c *gin.Context) {
+	id := c.Param("pregnancyId")
+	db := config.DB()
+
+	var results []entity.LabResult
+	if err := db.Where("pregnancy_id = ?", id).Order("test_date DESC").Find(&results).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": []entity.LabResult{}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": results})
 }
 
 

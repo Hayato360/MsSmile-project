@@ -18,6 +18,7 @@ type LabResult struct {
 	Hb           float64 // Hemoglobin
 	HbTyping     string
 	OtherRemarks string
+	FilePath     string // Path to the uploaded PDF file
 
 	// FK -> ผลตรวจ
 	DCPResultID     *uint        `valid:"-"`

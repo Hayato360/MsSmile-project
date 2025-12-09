@@ -335,6 +335,24 @@ const saveVaccination = async () => {
   }
 }
 
+// Lab Results Logic
+const labResults = ref([])
+const labResultFile = ref(null)
+
+const handleFileUpload = (event) => {
+  labResultFile.value = event.target.files[0]
+}
+
+const fetchLabResults = async () => {
+  if (!pregnancyId.value) return
+  try {
+    const res = await api.get(`/doctor/pregnancy/${pregnancyId.value}/lab-results`)
+    labResults.value = res.data.data || []
+  } catch (error) {
+    console.error('Error fetching lab results:', error)
+  }
+}
+
 const saveLabResult = async () => {
   if (!pregnancyId.value) {
     alert('คนไข้ยังไม่มีข้อมูลการตั้งครรภ์')
@@ -342,17 +360,44 @@ const saveLabResult = async () => {
   }
 
   try {
-    await api.post('/doctor/lab-result', {
-      ...labResultForm.value,
-      PregnancyID: pregnancyId.value,
-      Hct: parseFloat(labResultForm.value.Hct),
-      Hb: parseFloat(labResultForm.value.Hb),
-      TestDate: new Date(labResultForm.value.TestDate).toISOString(),
+    const formData = new FormData()
+    formData.append('PregnancyID', pregnancyId.value)
+    formData.append('TestDate', labResultForm.value.TestDate)
+    formData.append('Hct', labResultForm.value.Hct)
+    formData.append('Hb', labResultForm.value.Hb)
+    formData.append('HbTyping', labResultForm.value.HbTyping)
+    formData.append('OtherRemarks', labResultForm.value.OtherRemarks)
+    
+    if (labResultFile.value) {
+      formData.append('File', labResultFile.value)
+    }
+
+    await api.post('/doctor/lab-result', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     })
+    
     alert('บันทึกผลแล็บสำเร็จ')
+    
+    // Reset form
+    labResultForm.value = {
+      TestDate: new Date().toISOString().split('T')[0],
+      Hct: '',
+      Hb: '',
+      HbTyping: '',
+      OtherRemarks: '',
+    }
+    labResultFile.value = null
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]')
+    if (fileInput) fileInput.value = ''
+
+    await fetchLabResults()
+
   } catch (error) {
     console.error('Error:', error)
-    alert('เกิดข้อผิดพลาด')
+    alert('เกิดข้อผิดพลาดในการบันทึก: ' + (error.response?.data?.error || error.message))
   }
 }
 
@@ -406,6 +451,7 @@ onMounted(async () => {
     const prevPregRes = await api.get(`/doctor/patient/${patientId}/previous-pregnancies`)
     previousPregnancies.value = prevPregRes.data.data || []
 
+    await fetchLabResults()
     calculateGA()
   } catch (error) {
     console.error('Error:', error)
@@ -1062,6 +1108,9 @@ const calculateAge = (birthDate) => {
       <!-- Lab Result Tab -->
       <div v-if="activeTab === 'lab'" class="card">
         <h2>บันทึกผลแล็บ</h2>
+        
+
+        
         <div v-if="!pregnancyId" class="no-pregnancy">
           <p class="warning-text">⚠️ คนไข้ยังไม่มีข้อมูลการตั้งครรภ์</p>
         </div>
@@ -1096,6 +1145,11 @@ const calculateAge = (birthDate) => {
               <input type="text" v-model="labResultForm.HbTyping" placeholder="A+" />
             </div>
             <div style="grid-column: 1 / -1">
+              <label>อัปโหลดเอกสาร (PDF)</label>
+              <input type="file" ref="labResultFile" accept="application/pdf" @change="handleFileUpload" />
+              <p class="text-sm text-gray-500 mt-1">รองรับไฟล์ PDF เท่านั้น</p>
+            </div>
+            <div style="grid-column: 1 / -1">
               <label>หมายเหตุ</label>
               <textarea v-model="labResultForm.OtherRemarks" rows="3"></textarea>
             </div>
@@ -1105,6 +1159,41 @@ const calculateAge = (birthDate) => {
             บันทึก
           </button>
         </form>
+
+        <!-- Lab Results History Table -->
+        <h3 v-if="labResults && labResults.length > 0" class="mt-8 mb-4 border-t pt-4">ประวัติผลแล็บ</h3>
+        <div class="table-responsive mb-4" v-if="labResults && labResults.length > 0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>วันที่ตรวจ</th>
+                <th>Hct</th>
+                <th>Hb</th>
+                <th>Hb Typing</th>
+                <th>ไฟล์แนบ</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="result in labResults" :key="result.ID">
+                <td>{{ formatDate(result.TestDate) }}</td>
+                <td>{{ result.Hct }}</td>
+                <td>{{ result.Hb }}</td>
+                <td>{{ result.HbTyping }}</td>
+                <td>
+                  <a v-if="result.FilePath" 
+                     :href="`http://localhost:8081/${result.FilePath}`" 
+                     target="_blank" 
+                     class="btn-view-pdf">
+                    <FileText size="16" /> ดูเอกสาร
+                  </a>
+                  <span v-else>-</span>
+                </td>
+                <td>{{ result.OtherRemarks || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Visit History -->

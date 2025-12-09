@@ -61,6 +61,10 @@ func main() {
 		
 		protected.POST("/doctor/previous-pregnancy", controller.DoctorCreatePreviousPregnancy)
 		protected.GET("/doctor/patient/:patientId/previous-pregnancies", controller.GetPreviousPregnancies)
+		protected.GET("/doctor/pregnancy/:pregnancyId/lab-results", controller.GetLabResultsByPregnancyID)
+		
+		// Static file serving for uploads
+		r.Static("/uploads", "./uploads")
 
 		// Profile Routes
 		protected.PUT("/profile/husband", controller.UpdateHusband)
