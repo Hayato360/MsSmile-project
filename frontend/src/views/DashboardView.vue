@@ -189,4 +189,92 @@ onMounted(async () => {
   color: white;
   transition: background 0.5s ease;
 }
+
+.empty-state-card {
+  background: white;
+  border-radius: 20px;
+  padding: 4rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.empty-content {
+  max-width: 480px;
+  width: 100%;
+}
+
+.empty-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  color: #00838f;
+  box-shadow: 0 4px 15px rgba(0, 131, 143, 0.15);
+}
+
+.empty-content h3 {
+  font-size: 1.75rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.empty-content > p {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.info-box {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  position: relative;
+}
+
+.info-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid #e9ecef;
+}
+
+.info-box::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid #f8f9fa;
+}
+
+.info-box p {
+  margin: 0;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.info-box .sub-text {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  font-weight: 400;
+}
 </style>
