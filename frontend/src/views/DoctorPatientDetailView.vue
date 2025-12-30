@@ -89,6 +89,13 @@ const medicalHistoryForm = ref({
   Remarks: '',
 })
 
+// Medical History Existence Flags
+const hasChronicDiseases = ref(false)
+const hasSurgeryHistory = ref(false)
+const hasDrugAllergies = ref(false)
+const hasGeneticDiseases = ref(false)
+const hasFamilyHistory = ref(false)
+
 const previousPregnancies = ref([])
 const previousPregnancyForm = ref({
   PregnancyNo: 1,
@@ -175,6 +182,10 @@ const calculateGA = () => {
   visitForm.value.GestationalAge = weeks
 }
 
+watch(pregnancyData, () => {
+  calculateGA()
+})
+
 const onVisitDateChange = () => {
   calculateGA()
 }
@@ -192,6 +203,13 @@ onMounted(async () => {
     const historyRes = await api.get(`/doctor/patient/${patientId}/medical-history`)
     if (historyRes.data.data) {
       medicalHistoryForm.value = historyRes.data.data
+      
+      // Initialize Flags
+      hasChronicDiseases.value = !!medicalHistoryForm.value.ChronicDiseases
+      hasSurgeryHistory.value = !!medicalHistoryForm.value.SurgeryHistory
+      hasDrugAllergies.value = !!medicalHistoryForm.value.DrugAllergies
+      hasGeneticDiseases.value = !!medicalHistoryForm.value.GeneticDiseases
+      hasFamilyHistory.value = !!medicalHistoryForm.value.OtherFamilyHistory
     }
 
     // Load previous pregnancies
@@ -217,7 +235,7 @@ onMounted(async () => {
   }
 })
 
-const newPregnancyLMP = ref(new Date().toISOString().split('T')[0])
+const newPregnancyLMP = ref('')
 const newPregnancyEDC = ref('')
 
 // Watch LMP to auto-calculate EDC
@@ -321,8 +339,16 @@ const saveVisit = async () => {
 
 const saveMedicalHistory = async () => {
   try {
+    // Clear fields if "No" is selected
+    const payload = { ...medicalHistoryForm.value }
+    if (!hasChronicDiseases.value) payload.ChronicDiseases = ''
+    if (!hasSurgeryHistory.value) payload.SurgeryHistory = ''
+    if (!hasDrugAllergies.value) payload.DrugAllergies = ''
+    if (!hasGeneticDiseases.value) payload.GeneticDiseases = ''
+    if (!hasFamilyHistory.value) payload.OtherFamilyHistory = ''
+
     await api.post('/doctor/medical-history', {
-      ...medicalHistoryForm.value,
+      ...payload,
       PregnantWomanID: parseInt(route.params.id),
     })
     alert('บันทึกประวัติสุขภาพสำเร็จ')
@@ -902,36 +928,77 @@ const formatTags = (str) => {
             <div class="form-grid">
               <div class="form-group full-width">
                 <label>โรคประจำตัว</label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasChronicDiseases" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasChronicDiseases" />
+                    มี
+                  </label>
+                </div>
                 <TagInput
+                  v-if="hasChronicDiseases"
                   v-model="medicalHistoryForm.ChronicDiseases"
-                  placeholder="ระบุโรคประจำตัว (กด Enter เพื่อเพิ่ม)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มโรค"
                 />
               </div>
 
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label>ประวัติการผ่าตัด</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasSurgeryHistory" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasSurgeryHistory" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasSurgeryHistory"
                   v-model="medicalHistoryForm.SurgeryHistory"
-                  placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติ"
                 />
               </div>
 
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label>ประวัติแพ้ยา/อาหาร</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasDrugAllergies" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasDrugAllergies" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasDrugAllergies"
                   v-model="medicalHistoryForm.DrugAllergies"
-                  placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติแพ้"
                 />
               </div>
 
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label>โรคทางพันธุกรรม</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasGeneticDiseases" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasGeneticDiseases" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasGeneticDiseases"
                   v-model="medicalHistoryForm.GeneticDiseases"
-                  placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มโรค"
                 />
               </div>
 
@@ -953,9 +1020,20 @@ const formatTags = (str) => {
             <h4 class="section-title">ประวัติครอบครัว</h4>
             <div class="form-group full-width mt-3">
               <label>ประวัติครอบครัว</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" :value="false" v-model="hasFamilyHistory" />
+                  ไม่มี
+                </label>
+                <label class="radio-label">
+                  <input type="radio" :value="true" v-model="hasFamilyHistory" />
+                  มี
+                </label>
+              </div>
               <TagInput
+                v-if="hasFamilyHistory"
                 v-model="medicalHistoryForm.OtherFamilyHistory"
-                placeholder="ระบุประวัติครอบครัว (กด Enter เพื่อเพิ่ม)"
+                placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติ"
               />
             </div>
           </div>
@@ -1864,5 +1942,29 @@ select:focus {
   gap: 1rem;
   margin-top: 1.5rem;
   justify-content: flex-start;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  font-weight: normal; /* Override form-group label bold */
+}
+
+.radio-label input[type='radio'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  margin: 0; /* Reset default margin */
 }
 </style>

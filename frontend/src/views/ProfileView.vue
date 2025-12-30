@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { UserCircle, Save, Edit, User, FileHeart } from 'lucide-vue-next'
+import TagInput from '../components/TagInput.vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 
@@ -46,6 +47,13 @@ const medicalForm = ref({
   MenstrualCondition: 'ปกติ',
 })
 
+// Medical History Existence Flags
+const hasChronicDiseases = ref(false)
+const hasSurgeryHistory = ref(false)
+const hasDrugAllergies = ref(false)
+const hasGeneticDiseases = ref(false)
+const hasFamilyHistory = ref(false)
+
 const husbandForm = ref({
   full_name: '',
   age: '',
@@ -72,6 +80,13 @@ const initForms = () => {
     if (user.MedicalHistories && user.MedicalHistories.length > 0) {
       const history = user.MedicalHistories[0]
       medicalForm.value = { ...history }
+
+      // Initialize Flags
+      hasChronicDiseases.value = !!history.ChronicDiseases
+      hasSurgeryHistory.value = !!history.SurgeryHistory
+      hasDrugAllergies.value = !!history.DrugAllergies
+      hasGeneticDiseases.value = !!history.GeneticDiseases
+      hasFamilyHistory.value = !!history.OtherFamilyHistory
     }
 
     // Husband
@@ -119,7 +134,15 @@ const cancelEditPersonal = () => {
 const saveMedical = async () => {
   saving.value = true
   try {
-    await api.put('/profile/medical-history', medicalForm.value)
+    // Clear fields if "No" is selected
+    const payload = { ...medicalForm.value }
+    if (!hasChronicDiseases.value) payload.ChronicDiseases = ''
+    if (!hasSurgeryHistory.value) payload.SurgeryHistory = ''
+    if (!hasDrugAllergies.value) payload.DrugAllergies = ''
+    if (!hasGeneticDiseases.value) payload.GeneticDiseases = ''
+    if (!hasFamilyHistory.value) payload.OtherFamilyHistory = ''
+
+    await api.put('/profile/medical-history', payload)
     await authStore.fetchMe()
     initForms()
     isEditingMedical.value = false
@@ -157,6 +180,11 @@ const saveHusband = async () => {
 const cancelEditHusband = () => {
   initForms()
   isEditingHusband.value = false
+}
+const parseTags = (text) => {
+  if (!text) return []
+  // Split by newline or comma, then trim and filter empty
+  return text.split(/[,\n]/).map(t => t.trim()).filter(t => t.length > 0)
 }
 </script>
 
@@ -257,12 +285,24 @@ const cancelEditHusband = () => {
               <div class="info-item full-width">
                 <span class="label">โรคประจำตัว</span>
                 <div class="tags">
-                  <span v-if="medicalForm.ChronicDiseases" class="tag">{{
-                    medicalForm.ChronicDiseases
-                  }}</span>
-                  <span v-if="medicalForm.OtherDiseases" class="tag">{{
-                    medicalForm.OtherDiseases
-                  }}</span>
+                  <template v-if="medicalForm.ChronicDiseases">
+                    <span 
+                      v-for="(tag, index) in parseTags(medicalForm.ChronicDiseases)" 
+                      :key="'chronic-'+index" 
+                      class="tag"
+                    >
+                      {{ tag }}
+                    </span>
+                  </template>
+                  <template v-if="medicalForm.OtherDiseases">
+                    <span 
+                      v-for="(tag, index) in parseTags(medicalForm.OtherDiseases)" 
+                      :key="'other-'+index" 
+                      class="tag"
+                    >
+                      {{ tag }}
+                    </span>
+                  </template>
                   <span
                     v-if="!medicalForm.ChronicDiseases && !medicalForm.OtherDiseases"
                     class="text-muted"
@@ -308,37 +348,77 @@ const cancelEditHusband = () => {
             <div class="form-grid">
               <div class="form-group full-width">
                 <label>โรคประจำตัว</label>
-                <textarea
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasChronicDiseases" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasChronicDiseases" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasChronicDiseases"
                   v-model="medicalForm.ChronicDiseases"
-                  rows="3"
-                  placeholder="ระบุโรคประจำตัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
-                ></textarea>
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มโรค"
+                />
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติการผ่าตัด</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasSurgeryHistory" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasSurgeryHistory" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasSurgeryHistory"
                   v-model="medicalForm.SurgeryHistory"
-                  placeholder="ระบุประวัติการผ่าตัด (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติ"
                 />
               </div>
 
               <div class="form-group full-width">
                 <label>ประวัติแพ้ยา/อาหาร</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasDrugAllergies" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasDrugAllergies" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasDrugAllergies"
                   v-model="medicalForm.DrugAllergies"
-                  placeholder="ระบุยาหรืออาหารที่แพ้ (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติแพ้"
                 />
               </div>
 
               <div class="form-group full-width">
                 <label>โรคทางพันธุกรรม</label>
-                <input
-                  type="text"
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasGeneticDiseases" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasGeneticDiseases" />
+                    มี
+                  </label>
+                </div>
+                <TagInput
+                  v-if="hasGeneticDiseases"
                   v-model="medicalForm.GeneticDiseases"
-                  placeholder="ระบุโรคทางพันธุกรรม (ถ้ามี)"
+                  placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มโรค"
                 />
               </div>
             </div>
@@ -351,11 +431,21 @@ const cancelEditHusband = () => {
             <h4 class="section-title">ประวัติครอบครัว</h4>
             <div class="form-group full-width mt-3">
               <label>ประวัติครอบครัว</label>
-              <textarea
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" :value="false" v-model="hasFamilyHistory" />
+                  ไม่มี
+                </label>
+                <label class="radio-label">
+                  <input type="radio" :value="true" v-model="hasFamilyHistory" />
+                  มี
+                </label>
+              </div>
+              <TagInput
+                v-if="hasFamilyHistory"
                 v-model="medicalForm.OtherFamilyHistory"
-                rows="3"
-                placeholder="ระบุประวัติครอบครัว (ถ้ามีหลายโรคให้ระบุทีละบรรทัด หรือคั่นด้วยจุลภาค)"
-              ></textarea>
+                placeholder="พิมพ์แล้วกด Enter เพื่อเพิ่มประวัติ"
+              />
             </div>
           </div>
 
@@ -649,6 +739,28 @@ const cancelEditHusband = () => {
   height: 1px;
   background-color: var(--color-border);
   margin: 2rem 0;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.radio-label input[type='radio'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .checkbox-group {
