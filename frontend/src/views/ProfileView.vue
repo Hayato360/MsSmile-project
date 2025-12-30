@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { UserCircle, Save, Edit, User, FileHeart } from 'lucide-vue-next'
+import { UserCircle, Save, Edit, User, FileHeart, Syringe } from 'lucide-vue-next'
 import TagInput from '../components/TagInput.vue'
+import VaccinationCard from '../components/VaccinationCard.vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 
@@ -62,6 +63,11 @@ const husbandForm = ref({
   email: '',
 })
 
+// Vaccination Data
+const vaccineTypes = ref([])
+const vaccinationForms = ref({})
+const vaccinations = ref([])
+
 const initForms = () => {
   const user = authStore.user
 
@@ -105,6 +111,48 @@ const initForms = () => {
 onMounted(async () => {
   await authStore.fetchMe()
   initForms()
+  
+  // Load Vaccinations
+  try {
+      if (authStore.user) {
+        const vTypeRes = await api.get('/vaccine-types')
+        vaccineTypes.value = vTypeRes.data.data || []
+        
+        // Init empty forms
+        vaccineTypes.value.forEach(type => {
+            vaccinationForms.value[type.ID] = {
+                VaccineTypeID: type.ID,
+                IsPreviouslyVaccinated: false,
+                PreviousDoses: 0,
+                LastPreviousDateYear: null,
+                Dose1DateDuringPreg: null,
+                Dose2DateDuringPreg: null,
+                Dose3DateDuringPreg: null,
+                IsHistoryUnknown: false,
+                ReasonForNotVaccinating: '',
+                Remarks: '',
+            }
+        })
+
+        const vacRes = await api.get(`/vaccinations/pregnant-woman/${authStore.user.ID}`)
+        vaccinations.value = vacRes.data || []
+        
+        // Map data
+        vaccinations.value.forEach(v => {
+             if (vaccinationForms.value[v.VaccineTypeID]) {
+                const vData = { ...v }
+                if (vData.LastPreviousDateYear) vData.LastPreviousDateYear = vData.LastPreviousDateYear.split('T')[0]
+                if (vData.Dose1DateDuringPreg) vData.Dose1DateDuringPreg = vData.Dose1DateDuringPreg.split('T')[0]
+                if (vData.Dose2DateDuringPreg) vData.Dose2DateDuringPreg = vData.Dose2DateDuringPreg.split('T')[0]
+                if (vData.Dose3DateDuringPreg) vData.Dose3DateDuringPreg = vData.Dose3DateDuringPreg.split('T')[0]
+                vaccinationForms.value[v.VaccineTypeID] = { ...vaccinationForms.value[v.VaccineTypeID], ...vData }
+             }
+        })
+      }
+  } catch (e) {
+      console.error("Error loading vaccinations", e)
+  }
+
   loading.value = false
 })
 
@@ -568,6 +616,26 @@ const parseTags = (text) => {
           </div>
         </form>
       </div>
+
+      <!-- Vaccination Information Card -->
+      <div class="card">
+        <div class="card-header">
+          <Syringe size="24" />
+          <h3>ข้อมูลวัคซีน</h3>
+        </div>
+        <div class="display-content">
+             <div class="vaccination-grid">
+                <div v-for="type in vaccineTypes" :key="type.ID" class="vaccine-col">
+                    <VaccinationCard 
+                        :vaccine-type="type"
+                        v-model="vaccinationForms[type.ID]"
+                        :readonly="true"
+                    />
+                </div>
+            </div>
+             <p v-if="vaccineTypes.length === 0" class="text-center text-muted">ไม่พบข้อมูลวัคซีน</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -805,6 +873,14 @@ const parseTags = (text) => {
   font-size: 0.875rem;
   font-weight: 500;
 }
+
+.vaccination-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.text-center { text-align: center; }
+.text-muted { color: #6b7280; }
 
 .text-muted {
   color: #9ca3af;

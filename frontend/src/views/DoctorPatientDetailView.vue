@@ -5,6 +5,7 @@ import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical, FileHeart, 
 import api from '../services/api'
 import router from '../router'
 import TagInput from '../components/TagInput.vue'
+import VaccinationCard from '../components/VaccinationCard.vue'
 
 
 const route = useRoute()
@@ -111,6 +112,14 @@ const previousPregnancyForm = ref({
 
 const vaccineTypes = ref([])
 const vaccinations = ref([])
+const isAddingVaccination = ref(false)
+
+const toggleVaccinationMode = (shouldAdd = true, typeId = null) => {
+    isAddingVaccination.value = shouldAdd
+    if (shouldAdd && typeId) {
+        vaccinationForm.value.VaccineTypeID = typeId
+    }
+}
 
 const vaccinationForm = ref({
   VaccineTypeID: '',
@@ -145,10 +154,19 @@ const vaccinationHistoryStatus = computed({
   },
 })
 
-const handleHistoryUnknownChange = (e) => {
-  if (e.target.checked) {
-    vaccinationForm.value.IsPreviouslyVaccinated = false
-  }
+// Helper to get vaccine data for display
+const getVaccineData = (typeId) => {
+  if (!vaccinations.value || vaccinations.value.length === 0) return {}
+  const vac = vaccinations.value.find(v => v.VaccineTypeID === typeId)
+  if (!vac) return {}
+  
+  // Create a copy to avoid mutation issues
+  const data = { ...vac }
+  if (data.LastPreviousDateYear) data.LastPreviousDateYear = data.LastPreviousDateYear.split('T')[0]
+  if (data.Dose1DateDuringPreg) data.Dose1DateDuringPreg = data.Dose1DateDuringPreg.split('T')[0]
+  if (data.Dose2DateDuringPreg) data.Dose2DateDuringPreg = data.Dose2DateDuringPreg.split('T')[0]
+  if (data.Dose3DateDuringPreg) data.Dose3DateDuringPreg = data.Dose3DateDuringPreg.split('T')[0]
+  return data
 }
 
 const labResultForm = ref({
@@ -217,6 +235,8 @@ onMounted(async () => {
     previousPregnancies.value = prevPregRes.data.data || []
 
     // Load vaccine types
+    // Load vaccine types
+    // Load vaccine types
     const vacTypesRes = await api.get('/vaccine-types')
     vaccineTypes.value = vacTypesRes.data.data || []
     if (vaccineTypes.value.length > 0) {
@@ -227,7 +247,7 @@ onMounted(async () => {
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${patientId}`)
     vaccinations.value = vacRes.data || []
 
-    calculateGA()
+
   } catch (error) {
     console.error('Error:', error)
   } finally {
@@ -384,17 +404,12 @@ const saveVaccination = async () => {
     // Refresh list
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
     vaccinations.value = vacRes.data || []
-
-    // Reset form (optional, but keeping type selected is usually good)
-    vaccinationForm.value.IsPreviouslyVaccinated = false
-    vaccinationForm.value.PreviousDoses = 0
-    vaccinationForm.value.LastPreviousDateYear = null
-    vaccinationForm.value.Dose1DateDuringPreg = null
-    vaccinationForm.value.Dose2DateDuringPreg = null
-    vaccinationForm.value.Dose3DateDuringPreg = null
-    vaccinationForm.value.IsHistoryUnknown = false
-    vaccinationForm.value.ReasonForNotVaccinating = ''
-    vaccinationForm.value.Remarks = ''
+    
+    // Switch back to view mode
+    isAddingVaccination.value = false
+    
+    // Reset form partial (keep some state or reset all? lets reset)
+    // vaccinationForm.value = { ... } 
   } catch (error) {
     console.error('Error:', error)
     alert('เกิดข้อผิดพลาด')
@@ -1219,121 +1234,110 @@ const formatTags = (str) => {
 
       <!-- Vaccination Tab -->
       <div v-if="activeTab === 'vaccination'" class="card">
-        <h2>บันทึกวัคซีน</h2>
-
-        <!-- Vaccination List -->
-        <div class="table-responsive mb-4">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ชนิดวัคซีน</th>
-                <th>ประวัติ</th>
-                <th>เข็มล่าสุด (ปี)</th>
-                <th>Dose 1</th>
-                <th>Dose 2</th>
-                <th>Dose 3</th>
-                <th>หมายเหตุ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="vac in vaccinations" :key="vac.ID">
-                <td>{{ vac.VaccineType?.Name }}</td>
-                <td>
-                  <span v-if="vac.IsHistoryUnknown">ไม่ทราบประวัติ</span>
-                  <span v-else-if="vac.IsPreviouslyVaccinated"
-                    >เคยฉีด ({{ vac.PreviousDoses }} เข็ม)</span
-                  >
-                  <span v-else>ไม่เคยฉีด</span>
-                </td>
-                <td>
-                  {{
-                    vac.LastPreviousDateYear
-                      ? formatDate(vac.LastPreviousDateYear).split(' ').pop()
-                      : '-'
-                  }}
-                </td>
-                <td>{{ formatDate(vac.Dose1DateDuringPreg) }}</td>
-                <td>{{ formatDate(vac.Dose2DateDuringPreg) }}</td>
-                <td>{{ formatDate(vac.Dose3DateDuringPreg) }}</td>
-                <td>
-                  <span v-if="vac.ReasonForNotVaccinating" class="text-danger">{{
-                    vac.ReasonForNotVaccinating
-                  }}</span>
-                  <span v-else>{{ vac.Remarks || '-' }}</span>
-                </td>
-              </tr>
-              <tr v-if="vaccinations.length === 0">
-                <td colspan="7" class="text-center">ไม่มีข้อมูลการฉีดวัคซีน</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="card-header flex justify-between items-center mb-4">
+           <div class="flex items-center gap-2">
+                <Syringe size="24" />
+                <h3>ข้อมูลวัคซีน</h3>
+           </div>
+           <button v-if="!isAddingVaccination" @click="toggleVaccinationMode(true)" class="btn-save">
+                <Edit size="18" /> เพิ่ม/แก้ไขข้อมูล
+           </button>
         </div>
 
-        <h3>เพิ่มข้อมูลวัคซีน</h3>
-        <form @submit.prevent="saveVaccination">
-          <div class="form-grid">
-            <div style="grid-column: 1 / -1">
-              <label>ชนิดวัคซีน</label>
-              <select v-model="vaccinationForm.VaccineTypeID" required>
-                <option v-for="vt in vaccineTypes" :key="vt.ID" :value="vt.ID">
-                  {{ vt.Name }}
-                </option>
-              </select>
+        <!-- View Mode: Grid -->
+        <div v-if="!isAddingVaccination">
+            <h4 class="mt-4 mb-2">รายการวัคซีน (เลือก "แก้ไข" เพื่อลงข้อมูล)</h4>
+            <div class="vaccination-grid mb-6">
+                <div v-for="type in vaccineTypes" :key="type.ID" class="vaccine-col">
+                    <VaccinationCard 
+                        :vaccine-type="type"
+                        :model-value="getVaccineData(type.ID)"
+                        :readonly="true"
+                        :can-edit="true"
+                        @edit="toggleVaccinationMode(true, type.ID)"
+                    />
+                </div>
             </div>
-            <div class="input-with-label-offset" style="grid-column: 1 / -1">
-              <label>ประวัติการได้รับวัคซีน</label>
-              <select v-model="vaccinationHistoryStatus">
-                <option value="never">ไม่เคยฉีด</option>
-                <option value="previously">เคยฉีดวัคซีนมาก่อน</option>
-                <option value="unknown">ไม่ทราบประวัติ</option>
-              </select>
+        </div>
+
+        <!-- Edit Mode: Form -->
+        <div v-else>
+            <div class="flex justify-between items-center mb-4">
+                 <h3>บันทึกข้อมูลวัคซีน</h3>
+                 <button type="button" @click="toggleVaccinationMode(false)" class="btn-back-inline">
+                    <ArrowLeft size="18" /> ย้อนกลับ
+                 </button>
             </div>
-            <div>
-              <label>จำนวนครั้งที่เคยฉีด</label>
-              <input
-                type="number"
-                v-model.number="vaccinationForm.PreviousDoses"
-                :disabled="!vaccinationForm.IsPreviouslyVaccinated"
-              />
+            
+            <form @submit.prevent="saveVaccination">
+            <div class="form-grid">
+                <div style="grid-column: 1 / -1">
+                <label>ชนิดวัคซีน</label>
+                <select v-model="vaccinationForm.VaccineTypeID" required>
+                    <option v-for="vt in vaccineTypes" :key="vt.ID" :value="vt.ID">
+                    {{ vt.Name }}
+                    </option>
+                </select>
+                </div>
+                <div class="input-with-label-offset" style="grid-column: 1 / -1">
+                <label>ประวัติการได้รับวัคซีน</label>
+                <select v-model="vaccinationHistoryStatus">
+                    <option value="never">ไม่เคยฉีด</option>
+                    <option value="previously">เคยฉีดวัคซีนมาก่อน</option>
+                    <option value="unknown">ไม่ทราบประวัติ</option>
+                </select>
+                </div>
+                <div>
+                <label>จำนวนครั้งที่เคยฉีด</label>
+                <input
+                    type="number"
+                    v-model.number="vaccinationForm.PreviousDoses"
+                    :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+                />
+                </div>
+                <div>
+                <label>วันที่ฉีดครั้งสุดท้าย (ปี)</label>
+                <input
+                    type="date"
+                    v-model="vaccinationForm.LastPreviousDateYear"
+                    :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+                />
+                </div>
+                <div>
+                <label>Dose 1 (ครรภ์นี้)</label>
+                <input type="date" v-model="vaccinationForm.Dose1DateDuringPreg" />
+                </div>
+                <div>
+                <label>Dose 2 (ครรภ์นี้)</label>
+                <input type="date" v-model="vaccinationForm.Dose2DateDuringPreg" />
+                </div>
+                <div>
+                <label>Dose 3 (ครรภ์นี้)</label>
+                <input type="date" v-model="vaccinationForm.Dose3DateDuringPreg" />
+                </div>
+                <div style="grid-column: 1 / -1">
+                <label>เหตุผลที่ไม่ได้ฉีด (ถ้ามี)</label>
+                <input
+                    type="text"
+                    v-model="vaccinationForm.ReasonForNotVaccinating"
+                    placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน"
+                />
+                </div>
+                <div style="grid-column: 1 / -1">
+                <label>หมายเหตุ</label>
+                <textarea v-model="vaccinationForm.Remarks" rows="3"></textarea>
+                </div>
             </div>
-            <div>
-              <label>วันที่ฉีดครั้งสุดท้าย (ปี)</label>
-              <input
-                type="date"
-                v-model="vaccinationForm.LastPreviousDateYear"
-                :disabled="!vaccinationForm.IsPreviouslyVaccinated"
-              />
+            <div class="flex gap-4 mt-4">
+                <button type="button" @click="toggleVaccinationMode(false)" class="btn-cancel w-full">ยกเลิก</button>
+                <button type="submit" class="btn-save w-full">
+                    <Save size="18" />
+                    บันทึก
+                </button>
             </div>
-            <div>
-              <label>Dose 1 (ครรภ์นี้)</label>
-              <input type="date" v-model="vaccinationForm.Dose1DateDuringPreg" />
-            </div>
-            <div>
-              <label>Dose 2 (ครรภ์นี้)</label>
-              <input type="date" v-model="vaccinationForm.Dose2DateDuringPreg" />
-            </div>
-            <div>
-              <label>Dose 3 (ครรภ์นี้)</label>
-              <input type="date" v-model="vaccinationForm.Dose3DateDuringPreg" />
-            </div>
-            <div style="grid-column: 1 / -1">
-              <label>เหตุผลที่ไม่ได้ฉีด (ถ้ามี)</label>
-              <input
-                type="text"
-                v-model="vaccinationForm.ReasonForNotVaccinating"
-                placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน"
-              />
-            </div>
-            <div style="grid-column: 1 / -1">
-              <label>หมายเหตุ</label>
-              <textarea v-model="vaccinationForm.Remarks" rows="3"></textarea>
-            </div>
-          </div>
-          <button type="submit" class="btn-save">
-            <Save size="18" />
-            บันทึก
-          </button>
-        </form>
+            </form>
+        </div>
+
       </div>
 
       <!-- Lab Result Tab -->
@@ -1966,5 +1970,30 @@ select:focus {
   accent-color: var(--color-primary);
   cursor: pointer;
   margin: 0; /* Reset default margin */
+}
+.vaccination-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.btn-back-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-back-inline:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
 }
 </style>
