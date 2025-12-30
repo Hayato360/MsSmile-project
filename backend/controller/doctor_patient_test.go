@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -80,8 +79,60 @@ func TestDoctorCreateAppointment(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Appointment created", resp["message"])
 
-	// Verify linkage
 	var updatedMum entity.PregnantWoman
 	db.First(&updatedMum, id)
 	assert.NotNil(t, updatedMum.AppointmentID)
+}
+
+func TestGetDoctorPatientDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupTestDB()
+
+	r := gin.Default()
+	r.GET("/doctor/patients/:id", controller.GetDoctorPatientDetail)
+
+	db := config.DB()
+	mum := entity.PregnantWoman{Username: "DetailMum"}
+	db.Create(&mum)
+
+	url := fmt.Sprintf("/doctor/patients/%d", mum.ID)
+	req, _ := http.NewRequest("GET", url, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetPatientVisits(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupTestDB()
+
+	r := gin.Default()
+	r.GET("/doctor/patient/:patientId/visits", controller.GetPatientVisits)
+
+	db := config.DB()
+	mum := entity.PregnantWoman{Username: "VisitMum"}
+	db.Create(&mum)
+	
+	// Need pregnancy for visit
+	preg := entity.Pregnancy{PregnantWomanID: &mum.ID}
+	db.Create(&preg)
+
+	visit := entity.AntenatalVisit{PregnancyID: &preg.ID, Weight: 70}
+	db.Create(&visit)
+	// Need to associate pregnancy to mum? Controller uses Preload("Pregnancies").
+	// GORM association might need reloading or correct setup.
+	// Since we set PregnantWomanID in Preg, calling Preload on Mum should work.
+
+	url := fmt.Sprintf("/doctor/patient/%d/visits", mum.ID)
+	req, _ := http.NewRequest("GET", url, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	
+	var visits []entity.AntenatalVisit
+	json.Unmarshal(w.Body.Bytes(), &visits)
+	assert.NotEmpty(t, visits)
+	assert.Equal(t, 70.0, visits[0].Weight)
 }

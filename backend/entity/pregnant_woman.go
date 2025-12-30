@@ -31,5 +31,5 @@ type PregnantWoman struct {
 	MedicalHistories   []MedicalHistory   `gorm:"foreignKey:PregnantWomanID"`
 	Vaccinations       []Vaccination      `gorm:"foreignKey:PregnantWomanID"`
 	Pregnancies        []Pregnancy        `gorm:"foreignKey:PregnantWomanID"`
-	PregnancyHistories []PregnancyHistory `gorm:"foreignKey:PregnantWomanID"`
+	PreviousPregnancies []PreviousPregnancy `gorm:"foreignKey:PregnantWomanID"`
 }

@@ -50,7 +50,7 @@ func SetupDatabase() {
 		&FetalKickCount{},
 
 		// ประวัติการตั้งครรภ์ที่ผ่านมา
-		&PregnancyHistory{},
+		&PreviousPregnancy{},
 
 		// ผลแลป
 		&LabResult{},

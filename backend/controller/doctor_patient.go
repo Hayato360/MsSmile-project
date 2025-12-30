@@ -34,7 +34,7 @@ func GetDoctorPatientDetail(c *gin.Context) {
 	if err := db.Preload("Pregnancies").
 		Preload("MedicalHistories").
 		Preload("Vaccinations").
-		Preload("PregnancyHistories").
+		Preload("PreviousPregnancies").
 		Preload("Appointment").
 		First(&patient, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})

@@ -84,8 +84,8 @@ func TestUpdateVaccination(t *testing.T) {
 	vac := entity.Vaccination{PreviousDoses: 1}
 	db.Create(&vac)
 
-	payload := entity.Vaccination{
-		PreviousDoses: 5,
+	payload := map[string]interface{}{
+		"PreviousDoses": 5,
 	}
 	jsonValue, _ := json.Marshal(payload)
 	url := fmt.Sprintf("/vaccinations/%d", vac.ID)
@@ -132,7 +132,29 @@ func TestGetVaccinations(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &res)
 	assert.NotEmpty(t, res)
 	// Verify Preload (VaccineType) - if controller preloads it
-	// Controller has .Preload("VaccineType")
 	// assert.Equal(t, "Flu", res[0]["VaccineType"].(map[string]interface{})["Name"])
 	// Check field casing logic
+}
+
+func TestListVaccineTypes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupTestDB()
+
+	r := gin.Default()
+	r.GET("/vaccine-types", controller.ListVaccineTypes)
+
+	db := config.DB()
+	db.Create(&entity.VaccineType{Name: "TypeA"})
+	db.Create(&entity.VaccineType{Name: "TypeB"})
+
+	req, _ := http.NewRequest("GET", "/vaccine-types", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	
+	var res map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &res)
+	data := res["data"].([]interface{})
+	assert.GreaterOrEqual(t, len(data), 2)
 }

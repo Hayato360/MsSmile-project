@@ -34,6 +34,7 @@ func SetupDatabase() {
 	db.AutoMigrate(
 		&entity.PregnantWoman{},
 		&entity.Doctor{},
+		&entity.Pregnancy{},
 		&entity.PreviousPregnancy{},
 		&entity.MedicalHistory{},
 		&entity.Vaccination{},

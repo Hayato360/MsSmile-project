@@ -102,9 +102,32 @@ func TestGetMedicalHistory(t *testing.T) {
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	data := resp["data"].(map[string]interface{})
-	assert.Equal(t, "None", data["ChronicDiseases"]) // Field is Capitalized in struct, usually json is snake_case or whatever tag says.
-	// But wait, struct definition didn't show tags for ChronicDiseases!
-	// Struct: ChronicDiseases string
-	// Default GORM/JSON: "ChronicDiseases" (if no tag).
-	// Let's check struct again.
+	assert.Equal(t, "None", data["ChronicDiseases"])
+}
+
+func TestUpdateMedicalHistory(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupTestDB()
+
+	r := gin.Default()
+	r.PUT("/medical-histories/:id", controller.UpdateMedicalHistory)
+
+	db := config.DB()
+	mh := entity.MedicalHistory{ChronicDiseases: "None"}
+	db.Create(&mh)
+
+	payload := map[string]interface{}{
+		"ChronicDiseases": "Allergy",
+	}
+	jsonValue, _ := json.Marshal(payload)
+	url := fmt.Sprintf("/medical-histories/%d", mh.ID)
+	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	
+	var updatedMh entity.MedicalHistory
+	db.First(&updatedMh, mh.ID)
+	assert.Equal(t, "Allergy", updatedMh.ChronicDiseases)
 }
