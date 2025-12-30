@@ -75,7 +75,7 @@ func GetPregnantWoman(c *gin.Context) {
 	var PregnantWoman entity.PregnantWoman
 
 	db := config.DB()
-	results := db.Preload("Gender").First(&PregnantWoman, ID)
+	results := db.First(&PregnantWoman, ID)
 	if results.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": results.Error.Error()})
 		return
@@ -91,7 +91,7 @@ func GetUsername(c *gin.Context) {
 	var PregnantWoman entity.PregnantWoman
 
 	db := config.DB()
-	results := db.Preload("Gender").First(&PregnantWoman, Username)
+	results := db.First(&PregnantWoman, Username)
 	if results.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": results.Error.Error()})
 		return
@@ -108,7 +108,7 @@ func GetPassword(c *gin.Context) {
 	var PregnantWoman entity.PregnantWoman
 
 	db := config.DB()
-	results := db.Preload("Gender").First(&PregnantWoman, Password)
+	results := db.First(&PregnantWoman, Password)
 	if results.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": results.Error.Error()})
 		return
@@ -126,7 +126,7 @@ func ListPregnantWomans(c *gin.Context) {
 	var users []entity.PregnantWoman
 
 	db := config.DB()
-	results := db.Preload("Gender").Find(&users)
+	results := db.Find(&users)
 	if results.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": results.Error.Error()})
 		return
