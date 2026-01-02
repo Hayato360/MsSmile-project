@@ -42,6 +42,7 @@ func SetupDatabase() {
 		&entity.LabResult{},
 		&entity.FetalKickCount{},
 		&entity.Appointment{},
+		&entity.VaccineDose{},
 	)
 
 	hashedPassword, _ := HashPassword("123456")

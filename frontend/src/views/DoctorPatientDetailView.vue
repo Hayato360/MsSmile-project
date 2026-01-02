@@ -1,12 +1,21 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Save, ArrowLeft, Calendar, FileText, Syringe, FlaskConical, FileHeart, Clock, MapPin } from 'lucide-vue-next'
+import {
+  Save,
+  ArrowLeft,
+  Calendar,
+  FileText,
+  Syringe,
+  FlaskConical,
+  FileHeart,
+  Clock,
+  MapPin,
+} from 'lucide-vue-next'
 import api from '../services/api'
 import router from '../router'
 import TagInput from '../components/TagInput.vue'
 import VaccinationCard from '../components/VaccinationCard.vue'
-
 
 const route = useRoute()
 const patient = ref(null)
@@ -19,7 +28,7 @@ const appointmentForm = ref({
   Date: '',
   Time: '09:00',
   Title: 'นัดตรวจครรภ์ครั้งถัดไป',
-  Location: 'แผนกสูตินารีเวช อาคาร 2'
+  Location: 'แผนกสูตินารีเวช อาคาร 2',
 })
 
 const createAppointment = async () => {
@@ -31,25 +40,23 @@ const createAppointment = async () => {
   try {
     // Combine Date and Time
     const dateTimeStr = `${appointmentForm.value.Date}T${appointmentForm.value.Time}:00Z`
-    
+
     await api.post(`/doctor/patient/${route.params.id}/appointment`, {
       appointment_date: dateTimeStr,
       title: appointmentForm.value.Title,
-      location: appointmentForm.value.Location
+      location: appointmentForm.value.Location,
     })
 
     alert('บันทึกการนัดหมายสำเร็จ')
-    
+
     // Refresh patient data to see new appointment
     const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
     patient.value = patientRes.data
-    
   } catch (error) {
     console.error('Error creating appointment:', error)
     alert('เกิดข้อผิดพลาดในการนัดหมาย')
   }
 }
-
 
 const visitForm = ref({
   VisitDate: new Date().toISOString().split('T')[0],
@@ -115,10 +122,10 @@ const vaccinations = ref([])
 const isAddingVaccination = ref(false)
 
 const toggleVaccinationMode = (shouldAdd = true, typeId = null) => {
-    isAddingVaccination.value = shouldAdd
-    if (shouldAdd && typeId) {
-        vaccinationForm.value.VaccineTypeID = typeId
-    }
+  isAddingVaccination.value = shouldAdd
+  if (shouldAdd && typeId) {
+    vaccinationForm.value.VaccineTypeID = typeId
+  }
 }
 
 const vaccinationForm = ref({
@@ -129,10 +136,41 @@ const vaccinationForm = ref({
   Dose1DateDuringPreg: null,
   Dose2DateDuringPreg: null,
   Dose3DateDuringPreg: null,
+  Doses: [],
   IsHistoryUnknown: false,
   ReasonForNotVaccinating: '',
   Remarks: '',
 })
+
+// Watch VaccineTypeID to load existing data
+watch(
+  () => vaccinationForm.value.VaccineTypeID,
+  (newVal) => {
+    if (newVal) {
+      const existing = getVaccineData(newVal)
+      // Reset defaults first
+      const defaults = {
+        IsPreviouslyVaccinated: false,
+        PreviousDoses: 0,
+        LastPreviousDateYear: null,
+        Dose1DateDuringPreg: null,
+        Dose2DateDuringPreg: null,
+        Dose3DateDuringPreg: null,
+        Doses: [],
+        IsHistoryUnknown: false,
+        ReasonForNotVaccinating: '',
+        Remarks: '',
+      }
+
+      if (existing && existing.ID) {
+        Object.assign(vaccinationForm.value, { ...defaults, ...existing })
+        // getVaccineData already formats dates
+      } else {
+        Object.assign(vaccinationForm.value, defaults)
+      }
+    }
+  },
+)
 
 const vaccinationHistoryStatus = computed({
   get: () => {
@@ -157,15 +195,25 @@ const vaccinationHistoryStatus = computed({
 // Helper to get vaccine data for display
 const getVaccineData = (typeId) => {
   if (!vaccinations.value || vaccinations.value.length === 0) return {}
-  const vac = vaccinations.value.find(v => v.VaccineTypeID === typeId)
+  const vac = vaccinations.value.find((v) => v.VaccineTypeID === typeId)
   if (!vac) return {}
-  
+
   // Create a copy to avoid mutation issues
   const data = { ...vac }
   if (data.LastPreviousDateYear) data.LastPreviousDateYear = data.LastPreviousDateYear.split('T')[0]
   if (data.Dose1DateDuringPreg) data.Dose1DateDuringPreg = data.Dose1DateDuringPreg.split('T')[0]
   if (data.Dose2DateDuringPreg) data.Dose2DateDuringPreg = data.Dose2DateDuringPreg.split('T')[0]
   if (data.Dose3DateDuringPreg) data.Dose3DateDuringPreg = data.Dose3DateDuringPreg.split('T')[0]
+
+  if (data.Doses && Array.isArray(data.Doses)) {
+    data.Doses = data.Doses.map((d) => ({
+      ...d,
+      DoseDate: d.DoseDate ? d.DoseDate.split('T')[0] : '',
+    }))
+  } else {
+    data.Doses = []
+  }
+
   return data
 }
 
@@ -221,7 +269,7 @@ onMounted(async () => {
     const historyRes = await api.get(`/doctor/patient/${patientId}/medical-history`)
     if (historyRes.data.data) {
       medicalHistoryForm.value = historyRes.data.data
-      
+
       // Initialize Flags
       hasChronicDiseases.value = !!medicalHistoryForm.value.ChronicDiseases
       hasSurgeryHistory.value = !!medicalHistoryForm.value.SurgeryHistory
@@ -237,17 +285,16 @@ onMounted(async () => {
     // Load vaccine types
     // Load vaccine types
     // Load vaccine types
+    // Load existing vaccinations
+    const vacRes = await api.get(`/vaccinations/pregnant-woman/${patientId}`)
+    vaccinations.value = vacRes.data || []
+
+    // Load vaccine types and Set Initial Type to trigger watcher
     const vacTypesRes = await api.get('/vaccine-types')
     vaccineTypes.value = vacTypesRes.data.data || []
     if (vaccineTypes.value.length > 0) {
       vaccinationForm.value.VaccineTypeID = vaccineTypes.value[0].ID
     }
-
-    // Load existing vaccinations
-    const vacRes = await api.get(`/vaccinations/pregnant-woman/${patientId}`)
-    vaccinations.value = vacRes.data || []
-
-
   } catch (error) {
     console.error('Error:', error)
   } finally {
@@ -396,6 +443,10 @@ const saveVaccination = async () => {
       Dose3DateDuringPreg: vaccinationForm.value.Dose3DateDuringPreg
         ? new Date(vaccinationForm.value.Dose3DateDuringPreg).toISOString()
         : null,
+      Doses: vaccinationForm.value.Doses.map((d, index) => ({
+        DoseNo: index + 1,
+        DoseDate: new Date(d.DoseDate).toISOString(),
+      })),
       IsHistoryUnknown: vaccinationForm.value.IsHistoryUnknown,
       ReasonForNotVaccinating: vaccinationForm.value.ReasonForNotVaccinating,
     })
@@ -404,12 +455,12 @@ const saveVaccination = async () => {
     // Refresh list
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
     vaccinations.value = vacRes.data || []
-    
+
     // Switch back to view mode
     isAddingVaccination.value = false
-    
+
     // Reset form partial (keep some state or reset all? lets reset)
-    // vaccinationForm.value = { ... } 
+    // vaccinationForm.value = { ... }
   } catch (error) {
     console.error('Error:', error)
     alert('เกิดข้อผิดพลาด')
@@ -448,7 +499,7 @@ const saveLabResult = async () => {
     formData.append('Hb', labResultForm.value.Hb)
     formData.append('HbTyping', labResultForm.value.HbTyping)
     formData.append('OtherRemarks', labResultForm.value.OtherRemarks)
-    
+
     if (labResultFile.value) {
       formData.append('File', labResultFile.value)
     }
@@ -458,9 +509,9 @@ const saveLabResult = async () => {
         'Content-Type': 'multipart/form-data',
       },
     })
-    
+
     alert('บันทึกผลแล็บสำเร็จ')
-    
+
     // Reset form
     labResultForm.value = {
       TestDate: new Date().toISOString().split('T')[0],
@@ -475,7 +526,6 @@ const saveLabResult = async () => {
     if (fileInput) fileInput.value = ''
 
     await fetchLabResults()
-
   } catch (error) {
     console.error('Error:', error)
     alert('เกิดข้อผิดพลาดในการบันทึก: ' + (error.response?.data?.error || error.message))
@@ -566,7 +616,10 @@ const calculateAge = (birthDate) => {
 
 const formatTags = (str) => {
   if (!str) return []
-  return str.split(/,|\n/).map(t => t.trim()).filter(t => t)
+  return str
+    .split(/,|\n/)
+    .map((t) => t.trim())
+    .filter((t) => t)
 }
 </script>
 
@@ -614,7 +667,7 @@ const formatTags = (str) => {
 
       <!-- Appointments Tab -->
       <div v-if="activeTab === 'appointment'" class="card">
-         <div class="card-header">
+        <div class="card-header">
           <Clock size="24" />
           <h3>การนัดหมาย</h3>
         </div>
@@ -624,28 +677,37 @@ const formatTags = (str) => {
           <h4 class="text-lg font-bold mb-2 text-green-700">นัดหมายปัจจุบัน</h4>
           <div class="info-grid">
             <div class="full-width flex items-center gap-2">
-              <Calendar class="text-gray-500" size="20"/>
+              <Calendar class="text-gray-500" size="20" />
               <span class="font-medium text-lg">
-                {{ new Date(patient.Appointment.appointment_date || patient.Appointment.AppointmentDate).toLocaleDateString('th-TH', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                }) }}
+                {{
+                  new Date(
+                    patient.Appointment.appointment_date || patient.Appointment.AppointmentDate,
+                  ).toLocaleDateString('th-TH', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                }}
               </span>
             </div>
-             <div class="full-width flex items-center gap-2">
-              <Clock class="text-gray-500" size="20"/>
+            <div class="full-width flex items-center gap-2">
+              <Clock class="text-gray-500" size="20" />
               <span class="font-medium text-lg">
-                {{ new Date(patient.Appointment.appointment_date || patient.Appointment.AppointmentDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) }} น.
+                {{
+                  new Date(
+                    patient.Appointment.appointment_date || patient.Appointment.AppointmentDate,
+                  ).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+                }}
+                น.
               </span>
             </div>
-             <div class="full-width flex items-center gap-2">
-              <FileText class="text-gray-500" size="20"/>
+            <div class="full-width flex items-center gap-2">
+              <FileText class="text-gray-500" size="20" />
               <span>{{ patient.Appointment.title || patient.Appointment.Title }}</span>
             </div>
-             <div class="full-width flex items-center gap-2">
-              <MapPin class="text-gray-500" size="20"/>
+            <div class="full-width flex items-center gap-2">
+              <MapPin class="text-gray-500" size="20" />
               <span>{{ patient.Appointment.location || patient.Appointment.Location }}</span>
             </div>
           </div>
@@ -659,28 +721,38 @@ const formatTags = (str) => {
         <!-- Create New Appointment -->
         <h4 class="section-title mt-4">สร้างการนัดหมายใหม่</h4>
         <form @submit.prevent="createAppointment" class="form-grid">
-            <div class="form-group">
-                <label>วันที่นัดหมาย</label>
-                <input type="date" v-model="appointmentForm.Date" required class="form-input">
-            </div>
-            <div class="form-group">
-                <label>เวลา</label>
-                <input type="time" v-model="appointmentForm.Time" required class="form-input">
-            </div>
-             <div class="form-group full-width">
-                <label>หัวข้อการนัดหมาย</label>
-                <input type="text" v-model="appointmentForm.Title" required class="form-input" placeholder="เช่น นัดตรวจครรภ์ครั้งถัดไป">
-            </div>
-             <div class="form-group full-width">
-                <label>สถานที่</label>
-                <input type="text" v-model="appointmentForm.Location" required class="form-input" placeholder="เช่น แผนกสูตินารีเวช">
-            </div>
+          <div class="form-group">
+            <label>วันที่นัดหมาย</label>
+            <input type="date" v-model="appointmentForm.Date" required class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>เวลา</label>
+            <input type="time" v-model="appointmentForm.Time" required class="form-input" />
+          </div>
+          <div class="form-group full-width">
+            <label>หัวข้อการนัดหมาย</label>
+            <input
+              type="text"
+              v-model="appointmentForm.Title"
+              required
+              class="form-input"
+              placeholder="เช่น นัดตรวจครรภ์ครั้งถัดไป"
+            />
+          </div>
+          <div class="form-group full-width">
+            <label>สถานที่</label>
+            <input
+              type="text"
+              v-model="appointmentForm.Location"
+              required
+              class="form-input"
+              placeholder="เช่น แผนกสูตินารีเวช"
+            />
+          </div>
 
-            <div class="full-width mt-4">
-                <button type="submit" class="btn-save">
-                    <Save size="18" /> บันทึกการนัดหมาย
-                </button>
-            </div>
+          <div class="full-width mt-4">
+            <button type="submit" class="btn-save"><Save size="18" /> บันทึกการนัดหมาย</button>
+          </div>
         </form>
       </div>
 
@@ -839,15 +911,16 @@ const formatTags = (str) => {
                 <span class="label">โรคประจำตัว</span>
                 <div class="tags">
                   <template v-if="formatTags(medicalHistoryForm.ChronicDiseases).length > 0">
-                    <span v-for="(tag, idx) in formatTags(medicalHistoryForm.ChronicDiseases)" :key="idx" class="tag">
+                    <span
+                      v-for="(tag, idx) in formatTags(medicalHistoryForm.ChronicDiseases)"
+                      :key="idx"
+                      class="tag"
+                    >
                       {{ tag }}
                     </span>
                   </template>
-                  <span
-                    v-else-if="!medicalHistoryForm.OtherDiseases"
-                    class="text-muted"
-                  >-</span>
-                   <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{
+                  <span v-else-if="!medicalHistoryForm.OtherDiseases" class="text-muted">-</span>
+                  <span v-if="medicalHistoryForm.OtherDiseases" class="tag">{{
                     medicalHistoryForm.OtherDiseases
                   }}</span>
                 </div>
@@ -876,10 +949,14 @@ const formatTags = (str) => {
           <div class="info-section">
             <h4>ประวัติครอบครัว</h4>
             <div class="tags">
-               <template v-if="formatTags(medicalHistoryForm.OtherFamilyHistory).length > 0">
-                    <span v-for="(tag, idx) in formatTags(medicalHistoryForm.OtherFamilyHistory)" :key="idx" class="tag">
-                      {{ tag }}
-                    </span>
+              <template v-if="formatTags(medicalHistoryForm.OtherFamilyHistory).length > 0">
+                <span
+                  v-for="(tag, idx) in formatTags(medicalHistoryForm.OtherFamilyHistory)"
+                  :key="idx"
+                  class="tag"
+                >
+                  {{ tag }}
+                </span>
               </template>
               <span v-else class="text-muted">ไม่มีประวัติระบุ</span>
             </div>
@@ -926,7 +1003,7 @@ const formatTags = (str) => {
 
           <div class="info-section">
             <h4>หมายเหตุ</h4>
-             <p class="value">{{ medicalHistoryForm.Remarks || '-' }}</p>
+            <p class="value">{{ medicalHistoryForm.Remarks || '-' }}</p>
           </div>
 
           <button @click="isEditingMedicalHistory = true" class="btn-edit mt-4">
@@ -1235,117 +1312,134 @@ const formatTags = (str) => {
       <!-- Vaccination Tab -->
       <div v-if="activeTab === 'vaccination'" class="card">
         <div class="card-header flex justify-between items-center mb-4">
-           <div class="flex items-center gap-2">
-                <Syringe size="24" />
-                <h3>ข้อมูลวัคซีน</h3>
-           </div>
-           <button v-if="!isAddingVaccination" @click="toggleVaccinationMode(true)" class="btn-save">
-                <Edit size="18" /> เพิ่ม/แก้ไขข้อมูล
-           </button>
+          <div class="flex items-center gap-2">
+            <Syringe size="24" />
+            <h3>ข้อมูลวัคซีน</h3>
+          </div>
+          <button v-if="!isAddingVaccination" @click="toggleVaccinationMode(true)" class="btn-save">
+            <Edit size="18" /> เพิ่ม/แก้ไขข้อมูล
+          </button>
         </div>
 
         <!-- View Mode: Grid -->
         <div v-if="!isAddingVaccination">
-            <h4 class="mt-4 mb-2">รายการวัคซีน (เลือก "แก้ไข" เพื่อลงข้อมูล)</h4>
-            <div class="vaccination-grid mb-6">
-                <div v-for="type in vaccineTypes" :key="type.ID" class="vaccine-col">
-                    <VaccinationCard 
-                        :vaccine-type="type"
-                        :model-value="getVaccineData(type.ID)"
-                        :readonly="true"
-                        :can-edit="true"
-                        @edit="toggleVaccinationMode(true, type.ID)"
-                    />
-                </div>
+          <h4 class="mt-4 mb-2">รายการวัคซีน (เลือก "แก้ไข" เพื่อลงข้อมูล)</h4>
+          <div class="vaccination-grid mb-6">
+            <div v-for="type in vaccineTypes" :key="type.ID" class="vaccine-col">
+              <VaccinationCard
+                :vaccine-type="type"
+                :model-value="getVaccineData(type.ID)"
+                :readonly="true"
+                :can-edit="true"
+                @edit="toggleVaccinationMode(true, type.ID)"
+              />
             </div>
+          </div>
         </div>
 
         <!-- Edit Mode: Form -->
         <div v-else>
-            <div class="flex justify-between items-center mb-4">
-                 <h3>บันทึกข้อมูลวัคซีน</h3>
-                 <button type="button" @click="toggleVaccinationMode(false)" class="btn-back-inline">
-                    <ArrowLeft size="18" /> ย้อนกลับ
-                 </button>
-            </div>
-            
-            <form @submit.prevent="saveVaccination">
+          <div class="flex justify-between items-center mb-4">
+            <h3>บันทึกข้อมูลวัคซีน</h3>
+            <button type="button" @click="toggleVaccinationMode(false)" class="btn-back-inline">
+              <ArrowLeft size="18" /> ย้อนกลับ
+            </button>
+          </div>
+
+          <form @submit.prevent="saveVaccination">
             <div class="form-grid">
-                <div style="grid-column: 1 / -1">
+              <div style="grid-column: 1 / -1">
                 <label>ชนิดวัคซีน</label>
                 <select v-model="vaccinationForm.VaccineTypeID" required>
-                    <option v-for="vt in vaccineTypes" :key="vt.ID" :value="vt.ID">
+                  <option v-for="vt in vaccineTypes" :key="vt.ID" :value="vt.ID">
                     {{ vt.Name }}
-                    </option>
+                  </option>
                 </select>
-                </div>
-                <div class="input-with-label-offset" style="grid-column: 1 / -1">
+              </div>
+              <div class="input-with-label-offset" style="grid-column: 1 / -1">
                 <label>ประวัติการได้รับวัคซีน</label>
                 <select v-model="vaccinationHistoryStatus">
-                    <option value="never">ไม่เคยฉีด</option>
-                    <option value="previously">เคยฉีดวัคซีนมาก่อน</option>
-                    <option value="unknown">ไม่ทราบประวัติ</option>
+                  <option value="never">ไม่เคยฉีด</option>
+                  <option value="previously">เคยฉีดวัคซีนมาก่อน</option>
+                  <option value="unknown">ไม่ทราบประวัติ</option>
                 </select>
-                </div>
-                <div>
+              </div>
+              <div>
                 <label>จำนวนครั้งที่เคยฉีด</label>
                 <input
-                    type="number"
-                    v-model.number="vaccinationForm.PreviousDoses"
-                    :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+                  type="number"
+                  v-model.number="vaccinationForm.PreviousDoses"
+                  :disabled="!vaccinationForm.IsPreviouslyVaccinated"
                 />
-                </div>
-                <div>
+              </div>
+              <div>
                 <label>วันที่ฉีดครั้งสุดท้าย (ปี)</label>
                 <input
-                    type="date"
-                    v-model="vaccinationForm.LastPreviousDateYear"
-                    :disabled="!vaccinationForm.IsPreviouslyVaccinated"
+                  type="date"
+                  v-model="vaccinationForm.LastPreviousDateYear"
+                  :disabled="!vaccinationForm.IsPreviouslyVaccinated"
                 />
+              </div>
+              <div style="grid-column: 1 / -1">
+                <label>รายการวัคซีนที่ได้รับ (ครรภ์นี้)</label>
+                <div class="vaccine-doses-list">
+                  <div
+                    v-for="(dose, index) in vaccinationForm.Doses"
+                    :key="index"
+                    class="dose-item mb-2"
+                  >
+                    <label class="text-sm text-gray-500 block mb-1">เข็มที่ {{ index + 1 }}</label>
+                    <div class="dose-row">
+                      <input type="date" v-model="dose.DoseDate" class="flex-grow" />
+                      <button
+                        type="button"
+                        @click="vaccinationForm.Doses.splice(index, 1)"
+                        class="btn-remove-dose"
+                        title="ลบเข็มนี้"
+                      >
+                        <span class="text-red-500 font-bold">✕</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                <label>Dose 1 (ครรภ์นี้)</label>
-                <input type="date" v-model="vaccinationForm.Dose1DateDuringPreg" />
-                </div>
-                <div>
-                <label>Dose 2 (ครรภ์นี้)</label>
-                <input type="date" v-model="vaccinationForm.Dose2DateDuringPreg" />
-                </div>
-                <div>
-                <label>Dose 3 (ครรภ์นี้)</label>
-                <input type="date" v-model="vaccinationForm.Dose3DateDuringPreg" />
-                </div>
-                <div style="grid-column: 1 / -1">
+                <button
+                  type="button"
+                  @click="vaccinationForm.Doses.push({ DoseDate: '' })"
+                  class="btn-add-dose mt-2"
+                >
+                  + เพิ่มเข็ม
+                </button>
+              </div>
+              <div style="grid-column: 1 / -1">
                 <label>เหตุผลที่ไม่ได้ฉีด (ถ้ามี)</label>
                 <input
-                    type="text"
-                    v-model="vaccinationForm.ReasonForNotVaccinating"
-                    placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน"
+                  type="text"
+                  v-model="vaccinationForm.ReasonForNotVaccinating"
+                  placeholder="เช่น แพ้วัคซีน, ปฏิเสธการรับวัคซีน"
                 />
-                </div>
-                <div style="grid-column: 1 / -1">
+              </div>
+              <div style="grid-column: 1 / -1">
                 <label>หมายเหตุ</label>
                 <textarea v-model="vaccinationForm.Remarks" rows="3"></textarea>
-                </div>
+              </div>
             </div>
             <div class="flex gap-4 mt-4">
-                <button type="button" @click="toggleVaccinationMode(false)" class="btn-cancel w-full">ยกเลิก</button>
-                <button type="submit" class="btn-save w-full">
-                    <Save size="18" />
-                    บันทึก
-                </button>
+              <button type="button" @click="toggleVaccinationMode(false)" class="btn-cancel w-full">
+                ยกเลิก
+              </button>
+              <button type="submit" class="btn-save w-full">
+                <Save size="18" />
+                บันทึก
+              </button>
             </div>
-            </form>
+          </form>
         </div>
-
       </div>
 
       <!-- Lab Result Tab -->
       <div v-if="activeTab === 'lab'" class="card">
         <h2>บันทึกผลแล็บ</h2>
-        
 
-        
         <div v-if="!pregnancyId" class="no-pregnancy">
           <p class="warning-text">⚠️ คนไข้ยังไม่มีข้อมูลการตั้งครรภ์</p>
         </div>
@@ -1381,7 +1475,12 @@ const formatTags = (str) => {
             </div>
             <div style="grid-column: 1 / -1">
               <label>อัปโหลดเอกสาร (PDF)</label>
-              <input type="file" ref="labResultFile" accept="application/pdf" @change="handleFileUpload" />
+              <input
+                type="file"
+                ref="labResultFile"
+                accept="application/pdf"
+                @change="handleFileUpload"
+              />
               <p class="text-sm text-gray-500 mt-1">รองรับไฟล์ PDF เท่านั้น</p>
             </div>
             <div style="grid-column: 1 / -1">
@@ -1396,7 +1495,9 @@ const formatTags = (str) => {
         </form>
 
         <!-- Lab Results History Table -->
-        <h3 v-if="labResults && labResults.length > 0" class="mt-8 mb-4 border-t pt-4">ประวัติผลแล็บ</h3>
+        <h3 v-if="labResults && labResults.length > 0" class="mt-8 mb-4 border-t pt-4">
+          ประวัติผลแล็บ
+        </h3>
         <div class="table-responsive mb-4" v-if="labResults && labResults.length > 0">
           <table class="data-table">
             <thead>
@@ -1416,10 +1517,12 @@ const formatTags = (str) => {
                 <td>{{ result.Hb }}</td>
                 <td>{{ result.HbTyping }}</td>
                 <td>
-                  <a v-if="result.FilePath" 
-                     :href="`http://localhost:8081/${result.FilePath}`" 
-                     target="_blank" 
-                     class="btn-view-pdf">
+                  <a
+                    v-if="result.FilePath"
+                    :href="`http://localhost:8081/${result.FilePath}`"
+                    target="_blank"
+                    class="btn-view-pdf"
+                  >
                     <FileText size="16" /> ดูเอกสาร
                   </a>
                   <span v-else>-</span>
@@ -1972,28 +2075,79 @@ select:focus {
   margin: 0; /* Reset default margin */
 }
 .vaccination-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .btn-back-inline {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: white;
-    border: 1px solid #d1d5db;
-    color: #374151;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .btn-back-inline:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-add-dose {
+  width: 100%;
+  padding: 0.5rem;
+  background: white;
+  border: 1px dashed #3b82f6;
+  color: #3b82f6;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-add-dose:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.btn-remove-dose {
+  padding: 0 0.75rem;
+  height: 42px; /* Match input height roughly */
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-dose:hover {
+  background: #fee2e2;
+}
+.flex-grow {
+  flex-grow: 1;
+}
+.block {
+  display: block;
+}
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+.items-center {
+  align-items: center;
+}
+.dose-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
 }
 </style>

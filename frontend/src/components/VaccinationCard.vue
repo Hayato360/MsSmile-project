@@ -30,7 +30,7 @@ watch(
   (newVal) => {
     form.value = { ...newVal }
   },
-  { deep: true }
+  { deep: true },
 )
 
 const updateField = () => {
@@ -40,7 +40,7 @@ const updateField = () => {
 // History Logic
 const setHistoryStatus = (status) => {
   if (props.readonly) return
-  
+
   if (status === 'unknown') {
     form.value.IsHistoryUnknown = true
     form.value.IsPreviouslyVaccinated = false
@@ -62,12 +62,13 @@ const setHistoryStatus = (status) => {
 // Current Pregnancy Logic
 const setCurrentStatus = (isVaccinating) => {
   if (props.readonly) return
-  
+
   // If switching to not vaccinating, clear dates
   if (!isVaccinating) {
     form.value.Dose1DateDuringPreg = null
     form.value.Dose2DateDuringPreg = null
     form.value.Dose3DateDuringPreg = null
+    form.value.Doses = []
   } else {
     // If switching to vaccinating, clear reason
     form.value.ReasonForNotVaccinating = ''
@@ -76,7 +77,7 @@ const setCurrentStatus = (isVaccinating) => {
 }
 
 // Check if currently vaccinating (has at least one date or intended)
-// Actually, backend doesn't store "IsVaccinatingDuringPregnancy" bool, 
+// Actually, backend doesn't store "IsVaccinatingDuringPregnancy" bool,
 // it infers from dates or Reason.
 // So we need a local UI state or infer logic.
 // Let's infer: If Reason is empty, assumes intent to vaccinate or already vaccinated?
@@ -87,14 +88,19 @@ const isVaccinatingCurrent = ref(!form.value.ReasonForNotVaccinating)
 watch(isVaccinatingCurrent, (newVal) => {
   setCurrentStatus(newVal)
 })
-
 </script>
 
 <template>
   <div class="vaccine-card">
     <div class="card-header">
       <h4>{{ vaccineType.Name }}</h4>
-      <button v-if="canEdit" type="button" @click="$emit('edit')" class="btn-icon-edit" title="แก้ไข">
+      <button
+        v-if="canEdit"
+        type="button"
+        @click="$emit('edit')"
+        class="btn-icon-edit"
+        title="แก้ไข"
+      >
         <Edit size="16" />
       </button>
     </div>
@@ -103,62 +109,62 @@ watch(isVaccinatingCurrent, (newVal) => {
     <div class="section history-section">
       <div class="radio-item">
         <label class="radio-label">
-          <input 
-            type="radio" 
-            :name="`history-${vaccineType.ID}`" 
+          <input
+            type="radio"
+            :name="`history-${vaccineType.ID}`"
             :checked="form.IsPreviouslyVaccinated"
             @change="setHistoryStatus('previously')"
             :disabled="readonly"
-          >
+          />
           เคยฉีด
         </label>
         <div class="sub-inputs" v-if="form.IsPreviouslyVaccinated">
           <div class="inline-input">
             <span>จำนวน</span>
-            <input 
-              type="number" 
-              v-model.number="form.PreviousDoses" 
+            <input
+              type="number"
+              v-model.number="form.PreviousDoses"
               class="input-sm"
               @input="updateField"
               :disabled="readonly"
-            >
+            />
             <span>เข็ม</span>
           </div>
           <div class="inline-input">
             <span>ครั้งสุดท้าย วันที่</span>
-            <input 
-              type="date" 
-              v-model="form.LastPreviousDateYear" 
+            <input
+              type="date"
+              v-model="form.LastPreviousDateYear"
               class="input-md"
               @input="updateField"
               :disabled="readonly"
-            >
+            />
           </div>
         </div>
       </div>
 
       <div class="radio-item">
         <label class="radio-label">
-          <input 
-            type="radio" 
-            :name="`history-${vaccineType.ID}`" 
+          <input
+            type="radio"
+            :name="`history-${vaccineType.ID}`"
             :checked="!form.IsPreviouslyVaccinated && !form.IsHistoryUnknown"
             @change="setHistoryStatus('never')"
             :disabled="readonly"
-          >
+          />
           ไม่เคยฉีด
         </label>
       </div>
 
       <div class="radio-item">
         <label class="radio-label">
-          <input 
-            type="radio" 
-            :name="`history-${vaccineType.ID}`" 
+          <input
+            type="radio"
+            :name="`history-${vaccineType.ID}`"
             :checked="form.IsHistoryUnknown"
             @change="setHistoryStatus('unknown')"
             :disabled="readonly"
-          >
+          />
           ไม่ทราบ/ไม่แน่ใจ
         </label>
       </div>
@@ -169,73 +175,59 @@ watch(isVaccinatingCurrent, (newVal) => {
     <!-- Current Pregnancy Section -->
     <div class="section current-section">
       <div class="section-title">ในระหว่างการตั้งครรภ์นี้</div>
-      
+
       <div class="radio-item">
         <label class="radio-label">
-          <input 
-            type="radio" 
-            :name="`current-${vaccineType.ID}`" 
+          <input
+            type="radio"
+            :name="`current-${vaccineType.ID}`"
             :value="true"
             v-model="isVaccinatingCurrent"
             :disabled="readonly"
-          >
+          />
           ฉีดวัคซีน
         </label>
         <div class="sub-inputs" v-if="isVaccinatingCurrent">
-          <div class="inline-input">
-            <span>ครั้งที่ 1 วันที่</span>
-            <input 
-              type="date" 
-              v-model="form.Dose1DateDuringPreg" 
+          <div v-for="(dose, index) in form.Doses" :key="index" class="inline-input">
+            <span>เข็มที่ {{ index + 1 }} วันที่</span>
+            <input
+              type="date"
+              v-model="dose.DoseDate"
               class="input-md"
               @input="updateField"
               :disabled="readonly"
-            >
+            />
           </div>
-          <div class="inline-input">
-            <span>ครั้งที่ 2 วันที่</span>
-            <input 
-              type="date" 
-              v-model="form.Dose2DateDuringPreg" 
-              class="input-md"
-              @input="updateField"
-              :disabled="readonly"
-            >
-          </div>
-           <div class="inline-input">
-            <span>ครั้งที่ 3 วันที่</span>
-            <input 
-              type="date" 
-              v-model="form.Dose3DateDuringPreg" 
-              class="input-md"
-              @input="updateField"
-              :disabled="readonly"
-            >
+          <div
+            v-if="!form.Doses || form.Doses.length === 0"
+            class="text-gray-500 text-sm italic pl-2"
+          >
+            ยังไม่มีข้อมูลเข็ม
           </div>
         </div>
       </div>
 
       <div class="radio-item">
         <label class="radio-label">
-          <input 
-            type="radio" 
-            :name="`current-${vaccineType.ID}`" 
+          <input
+            type="radio"
+            :name="`current-${vaccineType.ID}`"
             :value="false"
             v-model="isVaccinatingCurrent"
             :disabled="readonly"
-          >
+          />
           ไม่ฉีดวัคซีนในครรภ์นี้
         </label>
-         <div class="sub-inputs" v-if="!isVaccinatingCurrent">
-            <input 
-              type="text" 
-              v-model="form.ReasonForNotVaccinating" 
-              placeholder="ระบุเหตุผล (เช่น แพ้, ปฏิเสธ)"
-              class="input-full"
-              @input="updateField"
-              :disabled="readonly"
-            >
-         </div>
+        <div class="sub-inputs" v-if="!isVaccinatingCurrent">
+          <input
+            type="text"
+            v-model="form.ReasonForNotVaccinating"
+            placeholder="ระบุเหตุผล (เช่น แพ้, ปฏิเสธ)"
+            class="input-full"
+            @input="updateField"
+            :disabled="readonly"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -263,23 +255,23 @@ watch(isVaccinatingCurrent, (newVal) => {
 }
 
 .btn-icon-edit {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: white;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: white;
 }
 .btn-icon-edit:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .card-header h4 {
-    margin: 0;
-    font-size: 1rem;
+  margin: 0;
+  font-size: 1rem;
 }
 
 .section {
@@ -293,34 +285,37 @@ watch(isVaccinatingCurrent, (newVal) => {
 }
 
 .history-section {
-    min-height: 140px;
+  min-height: 140px;
 }
 
 .current-section {
-    background-color: #fef9c3; /* Light yellow for current pregnancy, matching image hint? Or just white. let's stick to white or light yellow if meaningful. Image bottom box is yellowish? Hard to tell. Let's start with white. */
-    background: white;
+  background-color: #fef9c3; /* Light yellow for current pregnancy, matching image hint? Or just white. let's stick to white or light yellow if meaningful. Image bottom box is yellowish? Hard to tell. Let's start with white. */
+  background: white;
 }
 
 .divider {
-    height: 2px;
-    background: #4b5563;
-    margin: 0 1rem;
-    position: relative;
+  height: 2px;
+  background: #4b5563;
+  margin: 0 1rem;
+  position: relative;
 }
-.divider::before, .divider::after {
-    content: '';
-    position: absolute;
-    top: -3px;
-    width: 8px;
-    height: 8px;
-    background: white;
-    border: 2px solid #4b5563;
-    
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border: 2px solid #4b5563;
 }
-.divider::before { left: 0; }
-.divider::after { right: 0; }
+.divider::before {
+  left: 0;
+}
+.divider::after {
+  right: 0;
+}
 /* Just kidding, the image shows a line with squares at ends. simple hr is fine for now. */
-
 
 .radio-item {
   margin-bottom: 0.5rem;
@@ -336,10 +331,10 @@ watch(isVaccinatingCurrent, (newVal) => {
   color: #374151;
 }
 
-.radio-label input[type="radio"] {
-    width: 1.2rem;
-    height: 1.2rem;
-    accent-color: #10b981;
+.radio-label input[type='radio'] {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: #10b981;
 }
 
 .sub-inputs {
@@ -380,9 +375,9 @@ watch(isVaccinatingCurrent, (newVal) => {
 }
 
 .section-title {
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    color: #10b981;
-    text-decoration: underline;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #10b981;
+  text-decoration: underline;
 }
 </style>

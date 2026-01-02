@@ -15,7 +15,7 @@ func GetVaccinationsByPregnantWomanID(c *gin.Context) {
 
 	db := config.DB()
 
-	if err := db.Preload("VaccineType").Preload("VacDose").Where("p_id = ?", id).Find(&vaccinations).Error; err != nil {
+	if err := db.Preload("VaccineType").Preload("VacDose").Preload("Doses").Where("p_id = ?", id).Find(&vaccinations).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
@@ -83,10 +83,20 @@ func DoctorCreateVaccination(c *gin.Context) {
 		existingVaccination.ReasonForNotVaccinating = payload.ReasonForNotVaccinating
 		existingVaccination.Remarks = payload.Remarks
 
+		// Replace Doses
+		if err := db.Model(&existingVaccination).Association("Doses").Replace(payload.Doses); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
 		if err := db.Save(&existingVaccination).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		
+		// Reload to get updated data including doses
+		db.Preload("Doses").First(&existingVaccination, existingVaccination.ID)
+		
 		c.JSON(http.StatusOK, gin.H{"message": "Updated success", "data": existingVaccination})
 		return
 	}

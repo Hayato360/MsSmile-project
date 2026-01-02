@@ -30,4 +30,6 @@ type Vaccination struct {
 	// FK -> VacDose (VD_ID)
 	VacDoseID *uint    `gorm:"column:vd_id" valid:"-"`
 	VacDose   *VacDose `gorm:"references:ID" valid:"-"`
+
+	Doses []VaccineDose `gorm:"foreignKey:VaccinationID"`
 }
