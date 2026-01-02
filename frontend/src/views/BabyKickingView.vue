@@ -47,7 +47,8 @@ onMounted(async () => {
 })
 
 const saveKicks = async () => {
-  const total = parseInt(morningKicks.value) + parseInt(noonKicks.value) + parseInt(eveningKicks.value)
+  const total =
+    parseInt(morningKicks.value) + parseInt(noonKicks.value) + parseInt(eveningKicks.value)
 
   await store.addKickRecord({
     date: selectedDate.value,
@@ -155,7 +156,7 @@ const getTotal = (record) =>
       <p class="sub-text">หากคุณเพิ่งฝากครรภ์ กรุณาติดต่อเจ้าหน้าที่เพื่อบันทึกข้อมูล</p>
     </div>
 
-    <div v-else-if="authStore.gestationalAge" class="content-grid">
+    <div v-else-if="authStore.gestationalAge !== null" class="content-grid">
       <!-- Chart Section -->
       <div class="card chart-card">
         <h3>สถิติลูกดิ้นย้อนหลัง</h3>
@@ -193,10 +194,7 @@ const getTotal = (record) =>
         </button>
         <p class="note">*หากรวมกันน้อยกว่า 10 ครั้ง ควรปรึกษาแพทย์</p>
       </div>
-
     </div>
-
-
 
     <div v-else class="empty-state">
       <div class="empty-icon-wrapper">
@@ -208,21 +206,21 @@ const getTotal = (record) =>
 
     <!-- Low Count Warning Modal -->
     <div v-if="showLowCountModal" class="modal-overlay">
-        <div class="modal-content warning-modal">
-            <button class="modal-close" @click="showLowCountModal = false">
-                <X size="20" />
-            </button>
-            <div class="modal-icon-wrapper">
-                <AlertTriangle size="48" class="warning-icon" />
-            </div>
-            <h3>ลูกดิ้นน้อยผิดปกติ!</h3>
-            <p class="modal-message">
-                วันนี้ลูกดิ้นรวมกันน้อยกว่า 10 ครั้ง
-                <br>
-                <strong>"ควรรรีบไปพบแพทย์เพื่อตรวจเช็คสุขภาพทารกในครรภ์ทันที"</strong>
-            </p>
-            <button class="btn-warning-action" @click="showLowCountModal = false">รับทราบ</button>
+      <div class="modal-content warning-modal">
+        <button class="modal-close" @click="showLowCountModal = false">
+          <X size="20" />
+        </button>
+        <div class="modal-icon-wrapper">
+          <AlertTriangle size="48" class="warning-icon" />
         </div>
+        <h3>ลูกดิ้นน้อยผิดปกติ!</h3>
+        <p class="modal-message">
+          วันนี้ลูกดิ้นรวมกันน้อยกว่า 10 ครั้ง
+          <br />
+          <strong>"ควรรรีบไปพบแพทย์เพื่อตรวจเช็คสุขภาพทารกในครรภ์ทันที"</strong>
+        </p>
+        <button class="btn-warning-action" @click="showLowCountModal = false">รับทราบ</button>
+      </div>
     </div>
   </div>
 </template>
@@ -269,8 +267,6 @@ const getTotal = (record) =>
 .input-card {
   grid-column: 1 / -1;
 }
-
-
 
 @media (max-width: 1024px) {
   .content-grid {
@@ -368,7 +364,9 @@ const getTotal = (record) =>
   padding: 3rem 2rem;
   background: white;
   border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
@@ -430,7 +428,9 @@ const getTotal = (record) =>
   max-width: 400px;
   text-align: center;
   position: relative;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .modal-close {
