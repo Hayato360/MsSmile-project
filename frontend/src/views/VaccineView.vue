@@ -1,12 +1,17 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Shield, Syringe, AlertCircle } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import VaccinationCard from '../components/VaccinationCard.vue'
 
 const authStore = useAuthStore()
 const vaccinations = ref([])
 const loading = ref(true)
+
+// Encryption of data state
+const vaccineTypes = ref([])
+const vaccinationForms = ref({})
 
 onMounted(async () => {
   if (!authStore.user?.ID) {
@@ -15,8 +20,53 @@ onMounted(async () => {
   }
 
   try {
+     // 1. Fetch Vaccine Types
+    const vTypeRes = await api.get('/vaccine-types')
+    vaccineTypes.value = vTypeRes.data.data || []
+    
+    // 2. Initialize Forms
+    vaccineTypes.value.forEach(type => {
+        vaccinationForms.value[type.ID] = {
+            VaccineTypeID: type.ID,
+            IsPreviouslyVaccinated: false,
+            PreviousDoses: 0,
+            LastPreviousDateYear: null,
+            Dose1DateDuringPreg: null,
+            Dose2DateDuringPreg: null,
+            Dose3DateDuringPreg: null,
+            IsHistoryUnknown: false,
+            ReasonForNotVaccinating: '',
+            Remarks: '',
+            Doses: []
+        }
+    })
+
+    // 3. Fetch User Vaccinations
     const response = await api.get(`/vaccinations/pregnant-woman/${authStore.user.ID}`)
     vaccinations.value = response.data || []
+
+    // 4. Map Data
+    vaccinations.value.forEach(v => {
+         if (vaccinationForms.value[v.VaccineTypeID]) {
+            const vData = { ...v }
+            // Format dates for inputs
+            if (vData.LastPreviousDateYear) vData.LastPreviousDateYear = vData.LastPreviousDateYear.split('T')[0]
+            if (vData.Dose1DateDuringPreg) vData.Dose1DateDuringPreg = vData.Dose1DateDuringPreg.split('T')[0]
+            if (vData.Dose2DateDuringPreg) vData.Dose2DateDuringPreg = vData.Dose2DateDuringPreg.split('T')[0]
+            if (vData.Dose3DateDuringPreg) vData.Dose3DateDuringPreg = vData.Dose3DateDuringPreg.split('T')[0]
+            
+            // Map Doses array dates
+             if (vData.Doses && vData.Doses.length > 0) {
+                 vData.Doses = vData.Doses.map(d => ({
+                     ...d,
+                     DoseDate: d.DoseDate ? d.DoseDate.split('T')[0] : ''
+                 }))
+             }
+
+            vaccinationForms.value[v.VaccineTypeID] = { ...vaccinationForms.value[v.VaccineTypeID], ...vData }
+         }
+    })
+
   } catch (error) {
     console.error('Error:', error)
   } finally {
@@ -24,50 +74,6 @@ onMounted(async () => {
   }
 })
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  if (date.getFullYear() < 1900) return '-'
-  return date.toLocaleDateString('th-TH', {
-    year: '2-digit',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-const formatYear = (dateString) => {
-    if (!dateString) return '-'
-    const date = new Date(dateString)
-    if (date.getFullYear() < 1900) return '-'
-    return date.getFullYear() + 543 // Thai Year
-}
-
-const maxDoses = computed(() => {
-  let max = 3
-  if (vaccinations.value) {
-    vaccinations.value.forEach((v) => {
-      if (v.Doses && v.Doses.length > 0) {
-        v.Doses.forEach((d) => {
-          if (d.DoseNo > max) max = d.DoseNo
-        })
-      }
-    })
-  }
-  return max
-})
-
-const getDoseDate = (vaccine, doseNo) => {
-  // 1. Try Doses array
-  if (vaccine.Doses && vaccine.Doses.length > 0) {
-    const dose = vaccine.Doses.find((d) => d.DoseNo === doseNo)
-    return dose ? dose.DoseDate : null
-  }
-  // 2. Fallback to legacy fields
-  if (doseNo === 1) return vaccine.Dose1DateDuringPreg
-  if (doseNo === 2) return vaccine.Dose2DateDuringPreg
-  if (doseNo === 3) return vaccine.Dose3DateDuringPreg
-  return null
-}
 </script>
 
 <template>
@@ -82,50 +88,17 @@ const getDoseDate = (vaccine, doseNo) => {
 
     <div v-if="loading" class="loading">กำลังโหลดข้อมูล...</div>
 
-    <div v-else class="table-container">
-      <table class="vaccine-table">
-        <thead>
-          <tr>
-            <th rowspan="2" class="col-vaccine">วัคซีน</th>
-            <th colspan="3" class="col-history">ประวัติการได้รับก่อนตั้งครรภ์</th>
-            <th :colspan="maxDoses + 1" class="col-current">ในระหว่างการตั้งครรภ์นี้</th>
-          </tr>
-          <tr>
-            <th>เคยฉีด</th>
-            <th>จำนวน (ครั้ง)</th>
-            <th>ครั้งสุดท้าย (ปี)</th>
-            <th v-for="i in maxDoses" :key="i">เข็มที่ {{ i }}</th>
-            <th>หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="vaccine in vaccinations" :key="vaccine.ID">
-            <td class="vaccine-name">{{ vaccine.VaccineType?.Name || 'ไม่ระบุ' }}</td>
-            
-            <!-- History -->
-            <td class="text-center">
-                <span v-if="vaccine.IsHistoryUnknown">ไม่ทราบ</span>
-                <span v-else-if="vaccine.IsPreviouslyVaccinated">เคย</span>
-                <span v-else>ไม่เคย</span>
-            </td>
-            <td class="text-center">{{ vaccine.IsPreviouslyVaccinated ? vaccine.PreviousDoses : '-' }}</td>
-            <td class="text-center">{{ vaccine.IsPreviouslyVaccinated ? formatYear(vaccine.LastPreviousDateYear) : '-' }}</td>
-
-            <!-- Current Pregnancy -->
-            <td v-for="i in maxDoses" :key="i" class="text-center">
-              {{ formatDate(getDoseDate(vaccine, i)) }}
-            </td>
-            
-            <td class="text-center">
-                <span v-if="vaccine.ReasonForNotVaccinating" class="text-danger">{{ vaccine.ReasonForNotVaccinating }}</span>
-                <span v-else>{{ vaccine.Remarks || '-' }}</span>
-            </td>
-          </tr>
-          <tr v-if="vaccinations.length === 0">
-            <td :colspan="4 + maxDoses + 1" class="text-center py-4 text-muted">ยังไม่มีข้อมูลการฉีดวัคซีน</td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else class="content-container">
+       <div class="vaccination-grid">
+          <div v-for="type in vaccineTypes" :key="type.ID" class="vaccine-col">
+              <VaccinationCard 
+                  :vaccine-type="type"
+                  v-model="vaccinationForms[type.ID]"
+                  :readonly="true"
+              />
+          </div>
+      </div>
+       <p v-if="vaccineTypes.length === 0" class="text-center text-muted">ไม่พบข้อมูลวัคซีน</p>
     </div>
   </div>
 </template>
@@ -153,47 +126,14 @@ const getDoseDate = (vaccine, doseNo) => {
   color: #4b5563;
 }
 
-.table-container {
-  overflow-x: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background: white;
+.content-container {
+    padding: 1rem;
 }
 
-.vaccine-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 800px;
-}
-
-.vaccine-table th,
-.vaccine-table td {
-  border: 1px solid #e5e7eb;
-  padding: 0.75rem;
-  font-size: 0.95rem;
-}
-
-.vaccine-table th {
-  background-color: #f0f9ff; /* Light Blue */
-  color: #1e3a8a;
-  font-weight: 600;
-  text-align: center;
-}
-
-.col-history {
-  background-color: #fce7f3 !important; /* Light Pink */
-  color: #831843 !important;
-}
-
-.col-current {
-  background-color: #fef3c7 !important; /* Light Yellow */
-  color: #92400e !important;
-}
-
-.vaccine-name {
-  font-weight: 500;
-  color: #1f2937;
-  background-color: #f8fafc;
+.vaccination-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
 }
 
 .text-center {
@@ -202,14 +142,5 @@ const getDoseDate = (vaccine, doseNo) => {
 
 .text-muted {
   color: #9ca3af;
-}
-
-.text-danger {
-    color: #ef4444;
-}
-
-.py-4 {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
 }
 </style>

@@ -31,11 +31,11 @@ const formatDate = (dateString) => {
   <div class="health-history-view">
     <header class="page-header">
       <div class="user-summary">
-        <img
+        <!-- <img
           src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
           alt="Avatar"
           class="header-avatar"
-        />
+        /> -->
         <div>
           <h2>{{ authStore.user?.full_name || 'คุณแม่' }}</h2>
           <p v-if="authStore.gestationalAge">อายุครรภ์: {{ authStore.gestationalAge }} สัปดาห์</p>
