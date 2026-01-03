@@ -103,6 +103,7 @@ const hasSurgeryHistory = ref(false)
 const hasDrugAllergies = ref(false)
 const hasGeneticDiseases = ref(false)
 const hasFamilyHistory = ref(false)
+const hasPreeclampsia = ref(false)
 
 const previousPregnancies = ref([])
 const previousPregnancyForm = ref({
@@ -276,6 +277,7 @@ onMounted(async () => {
       hasDrugAllergies.value = !!medicalHistoryForm.value.DrugAllergies
       hasGeneticDiseases.value = !!medicalHistoryForm.value.GeneticDiseases
       hasFamilyHistory.value = !!medicalHistoryForm.value.OtherFamilyHistory
+      hasPreeclampsia.value = !!medicalHistoryForm.value.Preeclampsia
     }
 
     // Load previous pregnancies
@@ -413,6 +415,7 @@ const saveMedicalHistory = async () => {
     if (!hasDrugAllergies.value) payload.DrugAllergies = ''
     if (!hasGeneticDiseases.value) payload.GeneticDiseases = ''
     if (!hasFamilyHistory.value) payload.OtherFamilyHistory = ''
+    if (!hasPreeclampsia.value) payload.Preeclampsia = ''
 
     await api.post('/doctor/medical-history', {
       ...payload,
@@ -739,16 +742,7 @@ const formatTags = (str) => {
               placeholder="เช่น นัดตรวจครรภ์ครั้งถัดไป"
             />
           </div>
-          <div class="form-group full-width">
-            <label>สถานที่</label>
-            <input
-              type="text"
-              v-model="appointmentForm.Location"
-              required
-              class="form-input"
-              placeholder="เช่น แผนกสูตินารีเวช"
-            />
-          </div>
+
 
           <div class="full-width mt-4">
             <button type="submit" class="btn-save"><Save size="18" /> บันทึกการนัดหมาย</button>
@@ -905,10 +899,10 @@ const formatTags = (str) => {
         <!-- View Mode -->
         <div v-if="!isEditingMedicalHistory">
           <div class="info-section">
-            <h4>ประวัติการเจ็บป่วย</h4>
+            <h4>ประวัติการเจ็บป่วย </h4>
             <div class="info-grid">
               <div class="info-item full-width">
-                <span class="label">โรคประจำตัว</span>
+                <span class="label">โรคประจำตัว </span>
                 <div class="tags">
                   <template v-if="formatTags(medicalHistoryForm.ChronicDiseases).length > 0">
                     <span
@@ -926,19 +920,19 @@ const formatTags = (str) => {
                 </div>
               </div>
               <div class="info-item full-width">
-                <span class="label">ประวัติผ่าตัด</span>
+                <span class="label">ประวัติผ่าตัด </span>
                 <span class="value">{{ medicalHistoryForm.SurgeryHistory || '-' }}</span>
               </div>
               <div class="info-item full-width">
-                <span class="label">ประวัติแพ้ยา/อาหาร</span>
+                <span class="label">ประวัติแพ้ยา/อาหาร </span>
                 <span class="value">{{ medicalHistoryForm.DrugAllergies || '-' }}</span>
               </div>
               <div class="info-item full-width">
-                <span class="label">โรคทางพันธุกรรม</span>
+                <span class="label">โรคทางพันธุกรรม </span>
                 <span class="value">{{ medicalHistoryForm.GeneticDiseases || '-' }}</span>
               </div>
               <div class="info-item full-width">
-                <span class="label">ครรภ์เป็นพิษ</span>
+                <span class="label">ครรภ์เป็นพิษ </span>
                 <span class="value">{{ medicalHistoryForm.Preeclampsia || '-' }}</span>
               </div>
             </div>
@@ -968,7 +962,7 @@ const formatTags = (str) => {
             <h4>ประวัติประจำเดือน & การคุมกำเนิด</h4>
             <div class="info-grid">
               <div class="info-item">
-                <span class="label">รอบประจำเดือน</span>
+                <span class="label">รอบประจำเดือน </span>
                 <span class="value">{{
                   medicalHistoryForm.MenstrualCycle
                     ? medicalHistoryForm.MenstrualCycle + ' วัน'
@@ -976,7 +970,7 @@ const formatTags = (str) => {
                 }}</span>
               </div>
               <div class="info-item">
-                <span class="label">จำนวนวันที่มี</span>
+                <span class="label">จำนวนวันที่มี </span>
                 <span class="value">{{
                   medicalHistoryForm.MenstrualDuration
                     ? medicalHistoryForm.MenstrualDuration + ' วัน'
@@ -984,11 +978,11 @@ const formatTags = (str) => {
                 }}</span>
               </div>
               <div class="info-item">
-                <span class="label">ลักษณะประจำเดือน</span>
+                <span class="label">ลักษณะประจำเดือน </span>
                 <span class="value">{{ medicalHistoryForm.MenstrualCondition || '-' }}</span>
               </div>
               <div class="info-item full-width">
-                <span class="label">การคุมกำเนิดก่อนตั้งครรภ์</span>
+                <span class="label">การคุมกำเนิดก่อนตั้งครรภ์ </span>
                 <span class="value">
                   {{ medicalHistoryForm.ContraceptionBeforeMethod || '-' }}
                   <span v-if="medicalHistoryForm.ContraceptionBeforeDuration"
@@ -1094,12 +1088,24 @@ const formatTags = (str) => {
                 />
               </div>
 
-              <div class="form-group">
+              <div class="form-group full-width mt-3">
                 <label>ครรภ์เป็นพิษ</label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" :value="false" v-model="hasPreeclampsia" />
+                    ไม่มี
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :value="true" v-model="hasPreeclampsia" />
+                    มี
+                  </label>
+                </div>
                 <input
+                  v-if="hasPreeclampsia"
                   type="text"
                   v-model="medicalHistoryForm.Preeclampsia"
-                  placeholder="ระบุประวัติครรภ์เป็นพิษ (ถ้ามี)"
+                  placeholder="ระบุประวัติครรภ์เป็นพิษ"
+                  class="mt-2"
                 />
               </div>
             </div>
@@ -1153,7 +1159,7 @@ const formatTags = (str) => {
                 />
               </div>
               <div class="form-group full-width">
-                <label>ลักษณะประจำเดือน</label>
+                <label>ลักษณะประจำเดือน </label>
                 <select v-model="medicalHistoryForm.MenstrualCondition">
                   <option value="ปกติ">ปกติ</option>
                   <option value="มาไม่สม่ำเสมอ">มาไม่สม่ำเสมอ</option>

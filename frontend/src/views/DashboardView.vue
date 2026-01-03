@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Smile, Calendar, Footprints, ArrowRight, Baby } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
@@ -42,24 +42,48 @@ const calculateGA = () => {
 // Mock Appointment Data (Replace with real API if available)
 const nextAppointment = ref({})
 
-onMounted(async () => {
-  if (authStore.pregnancyId) {
-    try {
-      const response = await api.get(`/kick-counts/pregnancy/${authStore.pregnancyId}`)
-      const records = response.data || []
-      const today = new Date().toISOString().split('T')[0]
-      const todayRecord = records.find((r) => r.RecordDate?.startsWith(today))
-      if (todayRecord) {
-        kickCount.value =
-          (todayRecord.KickCountMorning || 0) +
-          (todayRecord.KickCountAfternoon || 0) +
-          (todayRecord.KickCountEvening || 0)
-      }
-    } catch (error) {
-      console.error('Error fetching kick count:', error)
+onMounted(() => {
+  fetchKickCount()
+})
+
+watch(() => authStore.pregnancyId, (newId) => {
+  if (newId) {
+    fetchKickCount()
+  }
+})
+
+const fetchKickCount = async () => {
+  if (!authStore.pregnancyId) return
+  
+  try {
+    const response = await api.get(`/kick-counts/pregnancy/${authStore.pregnancyId}`)
+    const records = response.data || []
+    
+    // Use local date (YYYY-MM-DD) instead of UTC to match user's day
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const today = `${year}-${month}-${day}`
+    
+    const todayRecord = records.find((r) => r.CountDate?.startsWith(today))
+    if (todayRecord) {
+      kickCount.value =
+        (todayRecord.KickCountMorning || 0) +
+        (todayRecord.KickCountLunch || 0) +
+        (todayRecord.KickCountEvening || 0)
+    } else {
+        kickCount.value = 0
     }
+  } catch (error) {
+    console.error('Error fetching kick count:', error)
   }
   loading.value = false
+}
+
+const kickStatus = computed(() => {
+  if (kickCount.value >= 10) return 'normal'
+  return 'danger'
 })
 </script>
 
@@ -121,14 +145,17 @@ onMounted(async () => {
         </div>
 
         <!-- Kick Count Card -->
-        <div class="stat-card blue-card">
-          <div class="icon-circle blue-icon">
+        <div class="stat-card" :class="kickStatus === 'normal' ? 'blue-card' : 'red-card'">
+          <div class="icon-circle" :class="kickStatus === 'normal' ? 'blue-icon' : 'red-icon'">
             <Footprints size="32" />
           </div>
           <p class="card-label">ลูกดิ้นวันนี้</p>
           <h3 class="card-value">{{ kickCount }} <span class="unit">ครั้ง</span></h3>
-          <p class="status-badge success">
+          <p v-if="kickStatus === 'normal'" class="status-badge success">
             <span class="dot"></span> เกณฑ์ปกติ
+          </p>
+          <p v-else class="status-badge danger">
+            <span class="dot"></span> ผิดปกติ (ควรพบแพทย์)
           </p>
         </div>
       </div>
@@ -224,6 +251,7 @@ onMounted(async () => {
 .green-card { border-top-color: #84cc16; }
 .orange-card { border-top-color: #f97316; }
 .blue-card { border-top-color: #3b82f6; }
+.red-card { border-top-color: #ef4444; }
 
 .icon-circle {
   width: 64px;
@@ -238,6 +266,7 @@ onMounted(async () => {
 .green-icon { background-color: #ecfccb; color: #84cc16; }
 .orange-icon { background-color: #ffedd5; color: #f97316; }
 .blue-icon { background-color: #dbeafe; color: #3b82f6; }
+.red-icon { background-color: #fee2e2; color: #ef4444; }
 
 .card-label {
   color: #64748b;
@@ -280,6 +309,11 @@ onMounted(async () => {
   color: #166534;
 }
 
+.status-badge.danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
 .dot {
   width: 6px;
   height: 6px;
@@ -290,24 +324,19 @@ onMounted(async () => {
 /* Growth Banner */
 .growth-banner {
   position: relative;
-  background-image: url('https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=2574&auto=format&fit=crop'); /* Forest background */
-  background-size: cover;
-  background-position: center;
-  border-radius: 2rem;
+  background: white;
+  border-radius: 1.5rem;
   overflow: hidden;
-  height: 280px;
+  height: auto;
+  min-height: 200px;
   display: flex;
-  align-items: flex-end;
-  color: white;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  color: #1e293b;
 }
 
 .banner-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%);
+  display: none;
 }
 
 .banner-content {
@@ -321,11 +350,12 @@ onMounted(async () => {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+  color: #3f6212;
 }
 
 .week-desc {
   font-size: 1rem;
-  opacity: 0.9;
+  color: #64748b;
   max-width: 600px;
   margin-bottom: 1.5rem;
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Shield, Syringe, AlertCircle } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
@@ -41,6 +41,33 @@ const formatYear = (dateString) => {
     if (date.getFullYear() < 1900) return '-'
     return date.getFullYear() + 543 // Thai Year
 }
+
+const maxDoses = computed(() => {
+  let max = 3
+  if (vaccinations.value) {
+    vaccinations.value.forEach((v) => {
+      if (v.Doses && v.Doses.length > 0) {
+        v.Doses.forEach((d) => {
+          if (d.DoseNo > max) max = d.DoseNo
+        })
+      }
+    })
+  }
+  return max
+})
+
+const getDoseDate = (vaccine, doseNo) => {
+  // 1. Try Doses array
+  if (vaccine.Doses && vaccine.Doses.length > 0) {
+    const dose = vaccine.Doses.find((d) => d.DoseNo === doseNo)
+    return dose ? dose.DoseDate : null
+  }
+  // 2. Fallback to legacy fields
+  if (doseNo === 1) return vaccine.Dose1DateDuringPreg
+  if (doseNo === 2) return vaccine.Dose2DateDuringPreg
+  if (doseNo === 3) return vaccine.Dose3DateDuringPreg
+  return null
+}
 </script>
 
 <template>
@@ -61,15 +88,13 @@ const formatYear = (dateString) => {
           <tr>
             <th rowspan="2" class="col-vaccine">วัคซีน</th>
             <th colspan="3" class="col-history">ประวัติการได้รับก่อนตั้งครรภ์</th>
-            <th colspan="4" class="col-current">ในระหว่างการตั้งครรภ์นี้</th>
+            <th :colspan="maxDoses + 1" class="col-current">ในระหว่างการตั้งครรภ์นี้</th>
           </tr>
           <tr>
             <th>เคยฉีด</th>
             <th>จำนวน (ครั้ง)</th>
             <th>ครั้งสุดท้าย (ปี)</th>
-            <th>เข็มที่ 1</th>
-            <th>เข็มที่ 2</th>
-            <th>เข็มที่ 3</th>
+            <th v-for="i in maxDoses" :key="i">เข็มที่ {{ i }}</th>
             <th>หมายเหตุ</th>
           </tr>
         </thead>
@@ -87,9 +112,9 @@ const formatYear = (dateString) => {
             <td class="text-center">{{ vaccine.IsPreviouslyVaccinated ? formatYear(vaccine.LastPreviousDateYear) : '-' }}</td>
 
             <!-- Current Pregnancy -->
-            <td class="text-center">{{ formatDate(vaccine.Dose1DateDuringPreg) }}</td>
-            <td class="text-center">{{ formatDate(vaccine.Dose2DateDuringPreg) }}</td>
-            <td class="text-center">{{ formatDate(vaccine.Dose3DateDuringPreg) }}</td>
+            <td v-for="i in maxDoses" :key="i" class="text-center">
+              {{ formatDate(getDoseDate(vaccine, i)) }}
+            </td>
             
             <td class="text-center">
                 <span v-if="vaccine.ReasonForNotVaccinating" class="text-danger">{{ vaccine.ReasonForNotVaccinating }}</span>
@@ -97,7 +122,7 @@ const formatYear = (dateString) => {
             </td>
           </tr>
           <tr v-if="vaccinations.length === 0">
-            <td colspan="8" class="text-center py-4 text-muted">ยังไม่มีข้อมูลการฉีดวัคซีน</td>
+            <td :colspan="4 + maxDoses + 1" class="text-center py-4 text-muted">ยังไม่มีข้อมูลการฉีดวัคซีน</td>
           </tr>
         </tbody>
       </table>
