@@ -214,7 +214,56 @@ func UpdateMyMedicalHistory(c *gin.Context) {
 		if err := db.Create(&input).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Medical history created", "data": input})
 	}
+	c.JSON(http.StatusOK, gin.H{"message": "Medical history created", "data": input})
 }
+}
+
+// PUT /doctor/profile - Update doctor profile
+func UpdateDoctorProfile(c *gin.Context) {
+	val, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+		return
+	}
+	userID := val.(uint)
+	role, _ := c.Get("role")
+
+	if role != "doctor" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only doctors can update this profile"})
+		return
+	}
+
+	var input struct {
+		FullName    string `json:"full_name"`
+		PhoneNumber string `json:"phone_number"`
+		Email       string `json:"email"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB()
+	var doctor entity.Doctor
+	if err := db.First(&doctor, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Doctor not found"})
+		return
+	}
+
+	doctor.FullName = input.FullName
+	doctor.PhoneNumber = input.PhoneNumber
+	doctor.Email = input.Email
+
+	if err := db.Save(&doctor).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile updated successfully",
+		"data":    doctor,
+	})
+}
+

@@ -1,12 +1,15 @@
 <script setup>
 import { RouterLink, useRoute } from 'vue-router'
-import { LayoutDashboard, Users, LogOut } from 'lucide-vue-next'
+import { LayoutDashboard, Users, LogOut, UserCog } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const authStore = useAuthStore()
 
-const menuItems = [{ name: 'รายชื่อคนไข้ทั้งหมด', path: '/doctor/dashboard', icon: Users }]
+const menuItems = [
+  { name: 'รายชื่อคนไข้ทั้งหมด', path: '/doctor/dashboard', icon: Users },
+  { name: 'ข้อมูลส่วนตัว', path: '/doctor/profile', icon: UserCog },
+]
 
 const handleLogout = () => {
   if (confirm('ต้องการออกจากระบบหรือไม่?')) {
