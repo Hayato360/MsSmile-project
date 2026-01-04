@@ -58,6 +58,7 @@ func main() {
 		protected.GET("/doctor/patient/:patientId/medical-history", controller.GetPatientMedicalHistory)
 		protected.POST("/doctor/lab-result", controller.DoctorCreateLabResult)
 		protected.POST("/doctor/vaccination", controller.DoctorCreateVaccination)
+		protected.DELETE("/vaccinations/:id", controller.DeleteVaccination)
 		protected.GET("/vaccine-types", controller.ListVaccineTypes)
 		
 		protected.POST("/doctor/previous-pregnancy", controller.DoctorCreatePreviousPregnancy)

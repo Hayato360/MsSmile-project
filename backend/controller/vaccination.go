@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"fmt"
 
 	"github.com/bestiesmile1845/Projecteiei/config"
 	"github.com/bestiesmile1845/Projecteiei/entity"
@@ -67,6 +68,19 @@ func DoctorCreateVaccination(c *gin.Context) {
 		return
 	}
 
+    // DEBUG LOGGING
+    fmt.Printf("DEBUG POST VACCINATION: Payload: %+v\n", payload)
+    if payload.PregnantWomanID != nil {
+        fmt.Printf("DEBUG: PregnantWomanID: %d\n", *payload.PregnantWomanID)
+    } else {
+        fmt.Println("DEBUG: PregnantWomanID is NIL")
+    }
+    if payload.VaccineTypeID != nil {
+        fmt.Printf("DEBUG: VaccineTypeID: %d\n", *payload.VaccineTypeID)
+    } else {
+        fmt.Println("DEBUG: VaccineTypeID is NIL")
+    }
+
 	db := config.DB()
 	var existingVaccination entity.Vaccination
 
@@ -108,4 +122,35 @@ func DoctorCreateVaccination(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Created success", "data": payload})
+}
+
+// DELETE /vaccinations/:id
+func DeleteVaccination(c *gin.Context) {
+	id := c.Param("id")
+	db := config.DB()
+
+	var vaccination entity.Vaccination
+	if err := db.Preload("Doses").First(&vaccination, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vaccination record not found"})
+		return
+	}
+
+	// Delete association (Doses)
+	// GORM cascading delete might work if configured, but let's be explicit or rely on Unscoped/Association clear
+	if err := db.Model(&vaccination).Association("Doses").Clear(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete doses assoc"})
+		return
+	}
+
+	// Also delete the Doses records themselves if they are orphan? 
+	// The Association Clear just removes FK. We might want to remove them.
+	// Actually, if we delete Vaccination, GORM might delete children if Constraint is set.
+	// But let's just delete the vaccination.
+	
+	if err := db.Select("Doses").Delete(&vaccination).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted success"})
 }

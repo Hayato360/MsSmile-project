@@ -5,11 +5,19 @@ import { useAuthStore } from '../stores/auth'
 
 
 
+import { ref } from 'vue'
+import ConfirmationModal from './ConfirmationModal.vue'
+
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+const showLogoutModal = ref(false)
 
+const confirmLogout = () => {
+  authStore.logout()
+  showLogoutModal.value = false
+}
 
 const menuItems = [
   { name: 'ภาพรวม (Dashboard)', path: '/', icon: LayoutDashboard },
@@ -19,12 +27,6 @@ const menuItems = [
   { name: 'ประวัติสุขภาพ', path: '/health-history', icon: FileHeart },
   { name: 'ข้อมูลส่วนตัว', path: '/profile', icon: User },
 ]
-
-const handleLogout = () => {
-  if (confirm('ต้องการออกจากระบบหรือไม่?')) {
-    authStore.logout()
-  }
-}
 </script>
 
 <template>
@@ -78,11 +80,20 @@ const handleLogout = () => {
         <span>{{ item.name }}</span>
       </RouterLink>
 
-      <button @click="handleLogout" class="menu-item logout-btn">
+      <button @click="showLogoutModal = true" class="menu-item logout-btn">
         <LogOut class="menu-icon" />
         <span>ออกจากระบบ</span>
       </button>
     </nav>
+    <ConfirmationModal
+      :isOpen="showLogoutModal"
+      title="ยืนยันการออกจากระบบ"
+      message="คุณต้องการออกจากระบบใช่หรือไม่?"
+      confirmText="ออกจากระบบ"
+      :isDestructive="true"
+      @confirm="confirmLogout"
+      @cancel="showLogoutModal = false"
+    />
   </aside>
 </template>
 

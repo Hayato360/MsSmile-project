@@ -11,6 +11,7 @@ import {
   FileHeart,
   Clock,
   MapPin,
+  Trash2,
 } from 'lucide-vue-next'
 import api from '../services/api'
 import router from '../router'
@@ -427,7 +428,9 @@ const saveMedicalHistory = async () => {
       ...payload,
       PregnantWomanID: parseInt(route.params.id),
     })
-    alert('บันทึกประวัติสุขภาพสำเร็จ')
+    successMessage.value = 'บันทึกประวัติสุขภาพสำเร็จ'
+    isEditingMedicalHistory.value = false
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     isEditingMedicalHistory.value = false
   } catch (error) {
     console.error('Error:', error)
@@ -435,31 +438,67 @@ const saveMedicalHistory = async () => {
   }
 }
 
+// Helper to safely format date to ISO
+const formatDateISO = (dateStr) => {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return null // Invalid date
+  return d.toISOString()
+}
+
+
+// Helper to sync DOM input values to Vue model (fix for Selenium/fast typing)
+const syncDoseDatesFromDOM = () => {
+  const dateInputs = document.querySelectorAll('.dose-date-input')
+  if (dateInputs.length === vaccinationForm.value.Doses.length) {
+    vaccinationForm.value.Doses.forEach((d, index) => {
+      // If model is empty but DOM has value, sync it!
+      if (!d.DoseDate && dateInputs[index].value) {
+        console.log(`Force syncing dose ${index + 1}: ${dateInputs[index].value}`)
+        d.DoseDate = dateInputs[index].value
+      }
+    })
+  }
+}
+
+const addDose = () => {
+    syncDoseDatesFromDOM() // Sync before adding to prevent wipe
+    vaccinationForm.value.Doses.push({ DoseDate: '' })
+}
+
 const saveVaccination = async () => {
   try {
-    await api.post('/doctor/vaccination', {
+    syncDoseDatesFromDOM() // Force Sync before save
+
+    // Validate Doses first
+    for (let i = 0; i < vaccinationForm.value.Doses.length; i++) {
+        const d = vaccinationForm.value.Doses[i]
+        if (!d.DoseDate || !formatDateISO(d.DoseDate)) {
+            alert(`กรุณาระบุวันที่ฉีดวัคซีนสำหรับเข็มที่ ${i + 1} ให้ถูกต้อง`)
+            return
+        }
+    }
+
+    const doses = vaccinationForm.value.Doses.map((d, index) => ({
+        DoseNo: index + 1,
+        DoseDate: formatDateISO(d.DoseDate),
+    }))
+
+    const payload = {
       ...vaccinationForm.value,
       PregnantWomanID: parseInt(route.params.id),
-      LastPreviousDateYear: vaccinationForm.value.LastPreviousDateYear
-        ? new Date(vaccinationForm.value.LastPreviousDateYear).toISOString()
-        : null,
-      Dose1DateDuringPreg: vaccinationForm.value.Dose1DateDuringPreg
-        ? new Date(vaccinationForm.value.Dose1DateDuringPreg).toISOString()
-        : null,
-      Dose2DateDuringPreg: vaccinationForm.value.Dose2DateDuringPreg
-        ? new Date(vaccinationForm.value.Dose2DateDuringPreg).toISOString()
-        : null,
-      Dose3DateDuringPreg: vaccinationForm.value.Dose3DateDuringPreg
-        ? new Date(vaccinationForm.value.Dose3DateDuringPreg).toISOString()
-        : null,
-      Doses: vaccinationForm.value.Doses.map((d, index) => ({
-        DoseNo: index + 1,
-        DoseDate: new Date(d.DoseDate).toISOString(),
-      })),
+      LastPreviousDateYear: formatDateISO(vaccinationForm.value.LastPreviousDateYear),
+      Dose1DateDuringPreg: formatDateISO(vaccinationForm.value.Dose1DateDuringPreg),
+      Dose2DateDuringPreg: formatDateISO(vaccinationForm.value.Dose2DateDuringPreg),
+      Dose3DateDuringPreg: formatDateISO(vaccinationForm.value.Dose3DateDuringPreg),
+      Doses: doses,
+      IsHistoryUnknown: vaccinationForm.value.IsHistoryUnknown,
       IsHistoryUnknown: vaccinationForm.value.IsHistoryUnknown,
       ReasonForNotVaccinating: vaccinationForm.value.ReasonForNotVaccinating,
-    })
-    alert('บันทึกข้อมูลวัคซีนสำเร็จ')
+    }
+    await api.post('/doctor/vaccination', payload)
+    successMessage.value = 'บันทึกข้อมูลวัคซีนสำเร็จ'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
 
     // Refresh list
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
@@ -475,6 +514,31 @@ const saveVaccination = async () => {
     alert('เกิดข้อผิดพลาด')
   }
 }
+
+const showDeleteVaccineModal = ref(false)
+
+const deleteVaccination = async () => {
+  if (!vaccinationForm.value.ID) return
+  
+  try {
+    await api.delete(`/vaccinations/${vaccinationForm.value.ID}`)
+    
+    successMessage.value = 'ลบข้อมูลวัคซีนเรียบร้อยแล้ว'
+    showDeleteVaccineModal.value = false
+    
+    // Refresh list
+    const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
+    vaccinations.value = vacRes.data || []
+    
+    // Switch to view
+    isAddingVaccination.value = false
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (error) {
+    console.error('Error deleting:', error)
+    alert('เกิดข้อผิดพลาดในการลบข้อมูล')
+  }
+}
+
 
 // Lab Results Logic
 const labResults = ref([])
@@ -1441,7 +1505,7 @@ const formatTags = (str) => {
                   >
                     <label class="text-sm text-gray-500 block mb-1">เข็มที่ {{ index + 1 }}</label>
                     <div class="dose-row">
-                      <input type="date" v-model="dose.DoseDate" class="flex-grow" />
+                      <input type="date" v-model="dose.DoseDate" class="dose-date-input flex-grow" />
                       <button
                         type="button"
                         @click="vaccinationForm.Doses.splice(index, 1)"
@@ -1455,7 +1519,7 @@ const formatTags = (str) => {
                 </div>
                 <button
                   type="button"
-                  @click="vaccinationForm.Doses.push({ DoseDate: '' })"
+                  @click="addDose"
                   class="btn-add-dose mt-2"
                 >
                   + เพิ่มเข็ม
@@ -1474,15 +1538,33 @@ const formatTags = (str) => {
                 <textarea v-model="vaccinationForm.Remarks" rows="3"></textarea>
               </div>
             </div>
-            <div class="flex gap-4 mt-4">
-              <button type="button" @click="toggleVaccinationMode(false)" class="btn-cancel w-full">
-                ยกเลิก
-              </button>
-              <button type="submit" class="btn-save w-full">
+            <div class="flex gap-4 mt-4 justify-between">
+              <button type="submit" class="btn-save">
                 <Save size="18" />
-                บันทึก
+                บันทึกข้อมูล
+              </button>
+              
+              <button 
+                v-if="vaccinationForm.ID" 
+                type="button" 
+                @click="showDeleteVaccineModal = true" 
+                class="btn-delete"
+              >
+                <Trash2 size="18" />
+                ลบข้อมูล
               </button>
             </div>
+            
+            <ConfirmationModal
+              :isOpen="showDeleteVaccineModal"
+              title="ยืนยันการลบข้อมูล"
+              message="คุณต้องการลบข้อมูลวัคซีนนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถเรียกคืนได้"
+              confirmText="ลบข้อมูล"
+              cancelText="ยกเลิก"
+              :isDestructive="true"
+              @confirm="deleteVaccination"
+              @cancel="showDeleteVaccineModal = false"
+            />
           </form>
         </div>
       </div>
@@ -2211,6 +2293,24 @@ select:focus {
 .date-text-input {
   width: 100%;
   padding-right: 2.5rem !important;
+}
+
+.btn-delete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background-color: #fca5a5;
+  border-color: #f87171;
 }
 
 .btn-calendar {

@@ -10,21 +10,21 @@ type Vaccination struct {
 	gorm.Model
 
 	// FK -> PregnantWoman (P_ID)
-	PregnantWomanID *uint          `gorm:"column:p_id" valid:"required~กรุณาเลือกมารดา"`
+	PregnantWomanID *uint          `gorm:"column:p_id" json:"PregnantWomanID" valid:"required~กรุณาเลือกมารดา"`
 	PregnantWoman   *PregnantWoman `gorm:"references:ID" valid:"-"`
 
-	IsPreviouslyVaccinated bool
-	PreviousDoses          int
-	LastPreviousDateYear   *time.Time
-	Dose1DateDuringPreg    *time.Time
-	Dose2DateDuringPreg    *time.Time
-	Dose3DateDuringPreg    *time.Time
-	IsHistoryUnknown       bool
-	ReasonForNotVaccinating string
-	Remarks                string
+	IsPreviouslyVaccinated bool      `json:"IsPreviouslyVaccinated"`
+	PreviousDoses          int       `json:"PreviousDoses"`
+	LastPreviousDateYear   *time.Time `json:"LastPreviousDateYear"`
+	Dose1DateDuringPreg    *time.Time `json:"Dose1DateDuringPreg"`
+	Dose2DateDuringPreg    *time.Time `json:"Dose2DateDuringPreg"`
+	Dose3DateDuringPreg    *time.Time `json:"Dose3DateDuringPreg"`
+	IsHistoryUnknown       bool      `json:"IsHistoryUnknown"`
+	ReasonForNotVaccinating string    `json:"ReasonForNotVaccinating"`
+	Remarks                string    `json:"Remarks"`
 
 	// FK -> VaccineType
-	VaccineTypeID *uint        `valid:"-"`
+	VaccineTypeID *uint        `json:"VaccineTypeID" valid:"-"`
 	VaccineType   *VaccineType `gorm:"references:ID" valid:"-"`
 
 	// FK -> VacDose (VD_ID)
