@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { UserPlus } from 'lucide-vue-next'
+import { UserPlus, Calendar } from 'lucide-vue-next'
 import api from '../services/api'
 
 const router = useRouter()
@@ -31,7 +31,7 @@ const handleRegister = async () => {
       username: formData.value.username,
       password: formData.value.password,
       phone_number: formData.value.phone_number,
-      birth_date: new Date(formData.value.birth_date).toISOString(),
+      birth_date: formData.value.birth_date ? new Date(formData.value.birth_date).toISOString() : null,
       hn: formData.value.hn,
       citizen_id: formData.value.citizen_id,
     })
@@ -65,7 +65,25 @@ const handleRegister = async () => {
             </div>
             <div class="form-group">
               <label>วันเกิด *</label>
-              <input type="date" v-model="formData.birth_date" required />
+              <div class="date-input-group">
+                <input 
+                  type="text" 
+                  v-model="formData.birth_date" 
+                  required 
+                  placeholder="YYYY-MM-DD"
+                  class="date-text-input"
+                />
+                <button type="button" @click="$refs.datePicker.showPicker()" class="btn-calendar" title="เลือกวันที่">
+                  <Calendar size="18" />
+                </button>
+                <input 
+                  type="date" 
+                  ref="datePicker"
+                  @input="formData.birth_date = $event.target.value"
+                  class="hidden-date-input"
+                  tabindex="-1"
+                />
+              </div>
             </div>
           </div>
 
@@ -194,6 +212,45 @@ const handleRegister = async () => {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.1);
+}
+
+.date-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-text-input {
+  width: 100%;
+  padding-right: 2.5rem !important; /* Make room for icon */
+}
+
+.btn-calendar {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.btn-calendar:hover {
+  color: var(--color-primary);
+}
+
+.hidden-date-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  bottom: 0;
+  left: 0;
 }
 
 .error-message {

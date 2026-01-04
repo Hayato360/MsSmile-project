@@ -318,6 +318,8 @@ watch(newPregnancyLMP, (newValue) => {
   }
 })
 
+const successMessage = ref('')
+
 const createPregnancy = async () => {
   try {
     await api.post('/doctor/pregnancy', {
@@ -330,9 +332,11 @@ const createPregnancy = async () => {
       PrePregnancyBMI: 19.5,
     })
 
-    alert('สร้างข้อมูลการตั้งครรภ์สำเร็จ')
+    successMessage.value = 'สร้างข้อมูลการตั้งครรภ์สำเร็จ'
     const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
     patient.value = patientRes.data
+    // Scroll to top to see message
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (error) {
     console.error('Error:', error)
     alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
@@ -366,8 +370,9 @@ const endPregnancy = async () => {
       gestational_age: parseInt(endPregnancyForm.value.GestationalAge),
     })
 
-    alert('จบการตั้งครรภ์เรียบร้อยแล้ว')
+    successMessage.value = 'จบการตั้งครรภ์เรียบร้อยแล้ว'
     showEndPregnancyModal.value = false
+    window.scrollTo({ top: 0, behavior: 'smooth' })
 
     // Refresh data
     const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
@@ -397,7 +402,8 @@ const saveVisit = async () => {
       VisitDate: new Date(visitForm.value.VisitDate).toISOString(),
     })
 
-    alert('บันทึกข้อมูลสำเร็จ')
+    successMessage.value = 'บันทึกข้อมูลสำเร็จ'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     const visitsRes = await api.get(`/doctor/patient/${route.params.id}/visits`)
     visits.value = visitsRes.data || []
   } catch (error) {
@@ -646,6 +652,12 @@ const formatTags = (str) => {
         </div>
       </div>
 
+      <!-- Success Notification -->
+      <div v-if="successMessage" class="success-alert">
+        <span>{{ successMessage }}</span>
+        <button @click="successMessage = ''" class="btn-close-alert">✕</button>
+      </div>
+
       <!-- Tabs -->
       <div class="tabs">
         <button :class="{ active: activeTab === 'visits' }" @click="activeTab = 'visits'">
@@ -759,11 +771,45 @@ const formatTags = (str) => {
           <div class="create-form">
             <div class="form-group">
               <label>วันประจำเดือนหมดครั้งสุดท้าย (LMP)</label>
-              <input type="date" v-model="newPregnancyLMP" />
+              <div class="date-input-group">
+                <input 
+                  type="text" 
+                  v-model="newPregnancyLMP" 
+                  placeholder="YYYY-MM-DD"
+                  class="date-text-input form-input"
+                />
+                <button type="button" @click="$refs.lmpPicker.showPicker()" class="btn-calendar" title="เลือกวันที่">
+                  <Calendar size="18" />
+                </button>
+                <input 
+                  type="date" 
+                  ref="lmpPicker"
+                  @input="newPregnancyLMP = $event.target.value"
+                  class="hidden-date-input"
+                  tabindex="-1"
+                />
+              </div>
             </div>
             <div class="form-group">
               <label>วันกำหนดคลอด (EDC)</label>
-              <input type="date" v-model="newPregnancyEDC" />
+              <div class="date-input-group">
+                <input 
+                  type="text" 
+                  v-model="newPregnancyEDC" 
+                  placeholder="YYYY-MM-DD"
+                  class="date-text-input form-input"
+                />
+                <button type="button" @click="$refs.edcPicker.showPicker()" class="btn-calendar" title="เลือกวันที่">
+                  <Calendar size="18" />
+                </button>
+                <input 
+                  type="date" 
+                  ref="edcPicker"
+                  @input="newPregnancyEDC = $event.target.value"
+                  class="hidden-date-input"
+                  tabindex="-1"
+                />
+              </div>
             </div>
             <button @click="createPregnancy" class="btn-create">สร้างข้อมูลการตั้งครรภ์</button>
           </div>
@@ -801,7 +847,7 @@ const formatTags = (str) => {
                   </div>
                   <div class="form-group">
                     <label>น้ำหนัก (kg) *</label>
-                    <input type="number" step="0.1" v-model="visitForm.Weight" required />
+                    <input type="text" v-model="visitForm.Weight" required placeholder="ระบุตัวเลข (เช่น 60.5)" />
                   </div>
                   <div class="form-group">
                     <label>ความดัน *</label>
@@ -815,10 +861,9 @@ const formatTags = (str) => {
                   <div class="form-group">
                     <label>ส่วนสูงมดลูก (cm)</label>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
                       v-model="visitForm.HeightFundus"
-                      placeholder="30"
+                      placeholder="ระบุตัวเลข (เช่น 30)"
                     />
                   </div>
                 </div>
@@ -1587,7 +1632,7 @@ const formatTags = (str) => {
             </div>
             <div>
               <label>อายุครรภ์ (สัปดาห์) *</label>
-              <input type="number" v-model="endPregnancyForm.GestationalAge" required />
+              <input type="text" v-model="endPregnancyForm.GestationalAge" required placeholder="ระบุตัวเลข (เช่น 20)" />
             </div>
             <div>
               <label>วิธีการคลอด *</label>
@@ -1599,7 +1644,7 @@ const formatTags = (str) => {
             </div>
             <div>
               <label>น้ำหนักแรกเกิด (กรัม) *</label>
-              <input type="number" step="0.01" v-model="endPregnancyForm.BirthWeight" required />
+              <input type="text" v-model="endPregnancyForm.BirthWeight" required placeholder="ระบุตัวเลข (เช่น 3000)" />
             </div>
             <div>
               <label>เพศ *</label>
@@ -2155,5 +2200,66 @@ select:focus {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+}
+
+.date-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-text-input {
+  width: 100%;
+  padding-right: 2.5rem !important;
+}
+
+.btn-calendar {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.btn-calendar:hover {
+  color: var(--color-primary);
+}
+
+.hidden-date-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.success-alert {
+  background-color: #d1fae5;
+  color: #065f46;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #a7f3d0;
+}
+
+.btn-close-alert {
+  background: none;
+  border: none;
+  color: #065f46;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 0.5rem;
 }
 </style>
