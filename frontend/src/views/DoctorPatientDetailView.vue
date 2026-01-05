@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Save,
@@ -17,6 +17,8 @@ import api from '../services/api'
 import router from '../router'
 import TagInput from '../components/TagInput.vue'
 import VaccinationCard from '../components/VaccinationCard.vue'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
+import NotificationModal from '../components/NotificationModal.vue'
 
 const route = useRoute()
 const patient = ref(null)
@@ -227,6 +229,23 @@ const labResultForm = ref({
   OtherRemarks: '',
 })
 
+// Notification Modal State
+const showNotificationModal = ref(false)
+const notificationData = ref({
+  title: '',
+  message: '',
+  type: 'success', // success, error, info, warning
+})
+
+const showNotification = (title, message, type = 'success') => {
+  notificationData.value = { title, message, type }
+  showNotificationModal.value = true
+}
+
+const closeNotification = () => {
+  showNotificationModal.value = false
+}
+
 const pregnancyId = computed(() => {
   if (!patient.value?.Pregnancies) return null
   const active = patient.value.Pregnancies.find((p) => p.status === 'Active')
@@ -237,6 +256,21 @@ const pregnancyData = computed(() => {
   if (!patient.value?.Pregnancies) return null
   return patient.value.Pregnancies.find((p) => p.status === 'Active')
 })
+
+// Watch for changes in Hct and Hb to debug Selenium issues
+watch(
+  () => labResultForm.value.Hct,
+  (newVal, oldVal) => {
+    console.log(`[DEBUG] Hct changed from "${oldVal}" to "${newVal}"`)
+  },
+)
+
+watch(
+  () => labResultForm.value.Hb,
+  (newVal, oldVal) => {
+    console.log(`[DEBUG] Hb changed from "${oldVal}" to "${newVal}"`)
+  },
+)
 
 const calculateGA = () => {
   if (!pregnancyData.value?.LMP || !visitForm.value.VisitDate) return
@@ -309,7 +343,6 @@ const newPregnancyLMP = ref('')
 const newPregnancyEDC = ref('')
 
 // Watch LMP to auto-calculate EDC
-import { watch } from 'vue'
 watch(newPregnancyLMP, (newValue) => {
   if (newValue) {
     const lmp = new Date(newValue)
@@ -446,7 +479,6 @@ const formatDateISO = (dateStr) => {
   return d.toISOString()
 }
 
-
 // Helper to sync DOM input values to Vue model (fix for Selenium/fast typing)
 const syncDoseDatesFromDOM = () => {
   const dateInputs = document.querySelectorAll('.dose-date-input')
@@ -462,8 +494,8 @@ const syncDoseDatesFromDOM = () => {
 }
 
 const addDose = () => {
-    syncDoseDatesFromDOM() // Sync before adding to prevent wipe
-    vaccinationForm.value.Doses.push({ DoseDate: '' })
+  syncDoseDatesFromDOM() // Sync before adding to prevent wipe
+  vaccinationForm.value.Doses.push({ DoseDate: '' })
 }
 
 const saveVaccination = async () => {
@@ -472,16 +504,16 @@ const saveVaccination = async () => {
 
     // Validate Doses first
     for (let i = 0; i < vaccinationForm.value.Doses.length; i++) {
-        const d = vaccinationForm.value.Doses[i]
-        if (!d.DoseDate || !formatDateISO(d.DoseDate)) {
-            alert(`กรุณาระบุวันที่ฉีดวัคซีนสำหรับเข็มที่ ${i + 1} ให้ถูกต้อง`)
-            return
-        }
+      const d = vaccinationForm.value.Doses[i]
+      if (!d.DoseDate || !formatDateISO(d.DoseDate)) {
+        alert(`กรุณาระบุวันที่ฉีดวัคซีนสำหรับเข็มที่ ${i + 1} ให้ถูกต้อง`)
+        return
+      }
     }
 
     const doses = vaccinationForm.value.Doses.map((d, index) => ({
-        DoseNo: index + 1,
-        DoseDate: formatDateISO(d.DoseDate),
+      DoseNo: index + 1,
+      DoseDate: formatDateISO(d.DoseDate),
     }))
 
     const payload = {
@@ -519,17 +551,17 @@ const showDeleteVaccineModal = ref(false)
 
 const deleteVaccination = async () => {
   if (!vaccinationForm.value.ID) return
-  
+
   try {
     await api.delete(`/vaccinations/${vaccinationForm.value.ID}`)
-    
+
     successMessage.value = 'ลบข้อมูลวัคซีนเรียบร้อยแล้ว'
     showDeleteVaccineModal.value = false
-    
+
     // Refresh list
     const vacRes = await api.get(`/vaccinations/pregnant-woman/${route.params.id}`)
     vaccinations.value = vacRes.data || []
-    
+
     // Switch to view
     isAddingVaccination.value = false
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -538,7 +570,6 @@ const deleteVaccination = async () => {
     alert('เกิดข้อผิดพลาดในการลบข้อมูล')
   }
 }
-
 
 // Lab Results Logic
 const labResults = ref([])
@@ -560,7 +591,7 @@ const fetchLabResults = async () => {
 
 const saveLabResult = async () => {
   if (!pregnancyId.value) {
-    alert('คนไข้ยังไม่มีข้อมูลการตั้งครรภ์')
+    showNotification('ไม่สามารถบันทึกได้', 'คนไข้ยังไม่มีข้อมูลการตั้งครรภ์', 'error')
     return
   }
 
@@ -583,7 +614,7 @@ const saveLabResult = async () => {
       },
     })
 
-    alert('บันทึกผลแล็บสำเร็จ')
+    showNotification('บันทึกสำเร็จ', 'บันทึกผลแล็บสำเร็จแล้ว', 'success')
 
     // Reset form
     labResultForm.value = {
@@ -601,8 +632,22 @@ const saveLabResult = async () => {
     await fetchLabResults()
   } catch (error) {
     console.error('Error:', error)
-    alert('เกิดข้อผิดพลาดในการบันทึก: ' + (error.response?.data?.error || error.message))
+    showNotification(
+      'เกิดข้อผิดพลาด',
+      'ไม่สามารถบันทึกผลแล็บได้: ' + (error.response?.data?.error || error.message),
+      'error',
+    )
   }
+}
+
+// Handle input changes explicitly to support Selenium/automation tools
+const handleLabInputChange = (field, event) => {
+  const value = event.target.value
+  // Force update the reactive value
+  labResultForm.value[field] = value
+
+  // Debug log for testing (can be removed in production)
+  console.log(`Lab result ${field} updated:`, value)
 }
 
 const createPreviousPregnancy = async () => {
@@ -619,21 +664,40 @@ const createPreviousPregnancy = async () => {
       complications: previousPregnancyForm.value.Complications,
       child_status: previousPregnancyForm.value.ChildStatus,
     })
-    alert('บันทึกข้อมูลครรภ์ในอดีตสำเร็จ')
+
+    showNotification('บันทึกสำเร็จ', 'บันทึกข้อมูลครรภ์ในอดีตสำเร็จแล้ว', 'success')
 
     // Refresh list
     const prevPregRes = await api.get(`/doctor/patient/${route.params.id}/previous-pregnancies`)
     previousPregnancies.value = prevPregRes.data.data || []
 
-    // Reset form (optional, maybe keep for next entry but increment No)
-    previousPregnancyForm.value.PregnancyNo++
-    previousPregnancyForm.value.DeliveryDate = ''
-    previousPregnancyForm.value.GestationalAge = ''
-    previousPregnancyForm.value.BirthWeight = ''
+    // Reset form - increment pregnancy number but keep other defaults
+    previousPregnancyForm.value = {
+      PregnancyNo: previousPregnancyForm.value.PregnancyNo + 1,
+      DeliveryDate: '',
+      GestationalAge: '',
+      DeliveryMethod: 'Normal',
+      BirthWeight: '',
+      Sex: 'Male',
+      DeliveryPlace: '',
+      Complications: '',
+      ChildStatus: 'Healthy',
+    }
   } catch (error) {
     console.error('Error:', error)
-    alert('เกิดข้อผิดพลาด')
+    showNotification(
+      'เกิดข้อผิดพลาด',
+      'ไม่สามารถบันทึกข้อมูลครรภ์ในอดีตได้: ' + (error.response?.data?.error || error.message),
+      'error',
+    )
   }
+}
+
+// Handle previous pregnancy input changes
+const handlePrevPregnancyInputChange = (field, event) => {
+  const value = event.target.value
+  previousPregnancyForm.value[field] = value
+  console.log(`Previous pregnancy ${field} updated:`, value)
 }
 
 onMounted(async () => {
@@ -819,7 +883,6 @@ const formatTags = (str) => {
             />
           </div>
 
-
           <div class="full-width mt-4">
             <button type="submit" class="btn-save"><Save size="18" /> บันทึกการนัดหมาย</button>
           </div>
@@ -836,17 +899,22 @@ const formatTags = (str) => {
             <div class="form-group">
               <label>วันประจำเดือนหมดครั้งสุดท้าย (LMP)</label>
               <div class="date-input-group">
-                <input 
-                  type="text" 
-                  v-model="newPregnancyLMP" 
+                <input
+                  type="text"
+                  v-model="newPregnancyLMP"
                   placeholder="YYYY-MM-DD"
                   class="date-text-input form-input"
                 />
-                <button type="button" @click="$refs.lmpPicker.showPicker()" class="btn-calendar" title="เลือกวันที่">
+                <button
+                  type="button"
+                  @click="$refs.lmpPicker.showPicker()"
+                  class="btn-calendar"
+                  title="เลือกวันที่"
+                >
                   <Calendar size="18" />
                 </button>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   ref="lmpPicker"
                   @input="newPregnancyLMP = $event.target.value"
                   class="hidden-date-input"
@@ -857,17 +925,22 @@ const formatTags = (str) => {
             <div class="form-group">
               <label>วันกำหนดคลอด (EDC)</label>
               <div class="date-input-group">
-                <input 
-                  type="text" 
-                  v-model="newPregnancyEDC" 
+                <input
+                  type="text"
+                  v-model="newPregnancyEDC"
                   placeholder="YYYY-MM-DD"
                   class="date-text-input form-input"
                 />
-                <button type="button" @click="$refs.edcPicker.showPicker()" class="btn-calendar" title="เลือกวันที่">
+                <button
+                  type="button"
+                  @click="$refs.edcPicker.showPicker()"
+                  class="btn-calendar"
+                  title="เลือกวันที่"
+                >
                   <Calendar size="18" />
                 </button>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   ref="edcPicker"
                   @input="newPregnancyEDC = $event.target.value"
                   class="hidden-date-input"
@@ -911,7 +984,12 @@ const formatTags = (str) => {
                   </div>
                   <div class="form-group">
                     <label>น้ำหนัก (kg) *</label>
-                    <input type="text" v-model="visitForm.Weight" required placeholder="ระบุตัวเลข (เช่น 60.5)" />
+                    <input
+                      type="text"
+                      v-model="visitForm.Weight"
+                      required
+                      placeholder="ระบุตัวเลข (เช่น 60.5)"
+                    />
                   </div>
                   <div class="form-group">
                     <label>ความดัน *</label>
@@ -1008,7 +1086,7 @@ const formatTags = (str) => {
         <!-- View Mode -->
         <div v-if="!isEditingMedicalHistory">
           <div class="info-section">
-            <h4>ประวัติการเจ็บป่วย </h4>
+            <h4>ประวัติการเจ็บป่วย</h4>
             <div class="info-grid">
               <div class="info-item full-width">
                 <span class="label">โรคประจำตัว </span>
@@ -1369,11 +1447,23 @@ const formatTags = (str) => {
             </div>
             <div>
               <label>วันที่คลอด/แท้ง</label>
-              <input type="date" v-model="previousPregnancyForm.DeliveryDate" required />
+              <input
+                type="date"
+                v-model="previousPregnancyForm.DeliveryDate"
+                @input="handlePrevPregnancyInputChange('DeliveryDate', $event)"
+                @change="handlePrevPregnancyInputChange('DeliveryDate', $event)"
+                required
+              />
             </div>
             <div>
               <label>อายุครรภ์ (สัปดาห์)</label>
-              <input type="number" v-model.number="previousPregnancyForm.GestationalAge" required />
+              <input
+                type="number"
+                v-model.number="previousPregnancyForm.GestationalAge"
+                @input="handlePrevPregnancyInputChange('GestationalAge', $event)"
+                @change="handlePrevPregnancyInputChange('GestationalAge', $event)"
+                required
+              />
             </div>
             <div>
               <label>วิธีคลอด/แท้ง</label>
@@ -1390,6 +1480,8 @@ const formatTags = (str) => {
                 type="number"
                 step="0.1"
                 v-model.number="previousPregnancyForm.BirthWeight"
+                @input="handlePrevPregnancyInputChange('BirthWeight', $event)"
+                @change="handlePrevPregnancyInputChange('BirthWeight', $event)"
                 required
               />
             </div>
@@ -1505,7 +1597,11 @@ const formatTags = (str) => {
                   >
                     <label class="text-sm text-gray-500 block mb-1">เข็มที่ {{ index + 1 }}</label>
                     <div class="dose-row">
-                      <input type="date" v-model="dose.DoseDate" class="dose-date-input flex-grow" />
+                      <input
+                        type="date"
+                        v-model="dose.DoseDate"
+                        class="dose-date-input flex-grow"
+                      />
                       <button
                         type="button"
                         @click="vaccinationForm.Doses.splice(index, 1)"
@@ -1517,11 +1613,7 @@ const formatTags = (str) => {
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  @click="addDose"
-                  class="btn-add-dose mt-2"
-                >
+                <button type="button" @click="addDose" class="btn-add-dose mt-2">
                   + เพิ่มเข็ม
                 </button>
               </div>
@@ -1543,18 +1635,18 @@ const formatTags = (str) => {
                 <Save size="18" />
                 บันทึกข้อมูล
               </button>
-              
-              <button 
-                v-if="vaccinationForm.ID" 
-                type="button" 
-                @click="showDeleteVaccineModal = true" 
+
+              <button
+                v-if="vaccinationForm.ID"
+                type="button"
+                @click="showDeleteVaccineModal = true"
                 class="btn-delete"
               >
                 <Trash2 size="18" />
                 ลบข้อมูล
               </button>
             </div>
-            
+
             <ConfirmationModal
               :isOpen="showDeleteVaccineModal"
               title="ยืนยันการลบข้อมูล"
@@ -1588,6 +1680,8 @@ const formatTags = (str) => {
                 type="number"
                 step="0.1"
                 v-model="labResultForm.Hct"
+                @input="handleLabInputChange('Hct', $event)"
+                @change="handleLabInputChange('Hct', $event)"
                 required
                 placeholder="40.5"
               />
@@ -1598,13 +1692,21 @@ const formatTags = (str) => {
                 type="number"
                 step="0.1"
                 v-model="labResultForm.Hb"
+                @input="handleLabInputChange('Hb', $event)"
+                @change="handleLabInputChange('Hb', $event)"
                 required
                 placeholder="13.5"
               />
             </div>
             <div>
               <label>Hb Typing</label>
-              <input type="text" v-model="labResultForm.HbTyping" placeholder="A+" />
+              <input
+                type="text"
+                v-model="labResultForm.HbTyping"
+                @input="handleLabInputChange('HbTyping', $event)"
+                @change="handleLabInputChange('HbTyping', $event)"
+                placeholder="A+"
+              />
             </div>
             <div style="grid-column: 1 / -1">
               <label>อัปโหลดเอกสาร (PDF)</label>
@@ -1714,7 +1816,12 @@ const formatTags = (str) => {
             </div>
             <div>
               <label>อายุครรภ์ (สัปดาห์) *</label>
-              <input type="text" v-model="endPregnancyForm.GestationalAge" required placeholder="ระบุตัวเลข (เช่น 20)" />
+              <input
+                type="text"
+                v-model="endPregnancyForm.GestationalAge"
+                required
+                placeholder="ระบุตัวเลข (เช่น 20)"
+              />
             </div>
             <div>
               <label>วิธีการคลอด *</label>
@@ -1726,7 +1833,12 @@ const formatTags = (str) => {
             </div>
             <div>
               <label>น้ำหนักแรกเกิด (กรัม) *</label>
-              <input type="text" v-model="endPregnancyForm.BirthWeight" required placeholder="ระบุตัวเลข (เช่น 3000)" />
+              <input
+                type="text"
+                v-model="endPregnancyForm.BirthWeight"
+                required
+                placeholder="ระบุตัวเลข (เช่น 3000)"
+              />
             </div>
             <div>
               <label>เพศ *</label>
@@ -1761,6 +1873,15 @@ const formatTags = (str) => {
         </form>
       </div>
     </div>
+
+    <!-- Notification Modal -->
+    <NotificationModal
+      :isOpen="showNotificationModal"
+      :title="notificationData.title"
+      :message="notificationData.message"
+      :type="notificationData.type"
+      @close="closeNotification"
+    />
   </div>
 </template>
 
