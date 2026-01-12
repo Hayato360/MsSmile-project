@@ -4,6 +4,7 @@ import { useBabyKickingStore } from '../stores/babyKicking'
 import { useAuthStore } from '../stores/auth'
 import { Bar } from 'vue-chartjs'
 import { AlertTriangle, X } from 'lucide-vue-next'
+import NotificationModal from '../components/NotificationModal.vue'
 import {
   Chart as ChartJS,
   Title,
@@ -26,8 +27,26 @@ const selectedDate = ref(new Date().toISOString().split('T')[0])
 const morningKicks = ref(0)
 const noonKicks = ref(0)
 const eveningKicks = ref(0)
+// Notification State
+const showNotificationModal = ref(false)
+const notificationData = ref({
+  title: '',
+  message: '',
+  type: 'success',
+})
 
-// Initialize form with today's data if exists
+const showNotification = (title, message, type = 'success') => {
+  notificationData.value = { title, message, type }
+  showNotificationModal.value = true
+}
+
+// Explicit Input Handler for Selenium
+const handleKickInputChange = (img, event) => {
+  const val = event.target.value
+  if (img === 'morning') morningKicks.value = val
+  if (img === 'noon') noonKicks.value = val
+  if (img === 'evening') eveningKicks.value = val
+}
 const initForm = () => {
   const record = store.kicks.find((k) => k.CountDate.split('T')[0] === selectedDate.value)
   if (record) {
@@ -61,7 +80,7 @@ const saveKicks = async () => {
   if (total < 10) {
     showLowCountModal.value = true
   } else {
-    alert('บันทึกข้อมูลเรียบร้อยแล้ว')
+    showNotification('สำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
   }
 }
 
@@ -176,15 +195,36 @@ const getTotal = (record) =>
         <div class="kick-inputs">
           <div class="input-group">
             <label>เช้า</label>
-            <input type="number" v-model="morningKicks" min="0" />
+            <input
+              id="kick-morning"
+              type="number"
+              v-model="morningKicks"
+              min="0"
+              @input="handleKickInputChange('morning', $event)"
+              @change="handleKickInputChange('morning', $event)"
+            />
           </div>
           <div class="input-group">
             <label>กลางวัน</label>
-            <input type="number" v-model="noonKicks" min="0" />
+            <input
+              id="kick-noon"
+              type="number"
+              v-model="noonKicks"
+              min="0"
+              @input="handleKickInputChange('noon', $event)"
+              @change="handleKickInputChange('noon', $event)"
+            />
           </div>
           <div class="input-group">
             <label>เย็น</label>
-            <input type="number" v-model="eveningKicks" min="0" />
+            <input
+              id="kick-evening"
+              type="number"
+              v-model="eveningKicks"
+              min="0"
+              @input="handleKickInputChange('evening', $event)"
+              @change="handleKickInputChange('evening', $event)"
+            />
           </div>
         </div>
 
@@ -222,6 +262,15 @@ const getTotal = (record) =>
         <button class="btn-warning-action" @click="showLowCountModal = false">รับทราบ</button>
       </div>
     </div>
+
+    <!-- Notification Modal -->
+    <NotificationModal
+      :isOpen="showNotificationModal"
+      :title="notificationData.title"
+      :message="notificationData.message"
+      :type="notificationData.type"
+      @close="showNotificationModal = false"
+    />
   </div>
 </template>
 
@@ -416,7 +465,7 @@ const getTotal = (record) =>
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
   backdrop-filter: blur(4px);
 }
 

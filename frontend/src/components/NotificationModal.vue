@@ -47,20 +47,22 @@ const iconColor = computed(() => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
-    <div class="modal-content">
-      <div class="icon-wrapper" :style="{ backgroundColor: iconColor }">
-        <span class="icon">{{ iconClass }}</span>
-      </div>
-      <h3 class="modal-title">{{ title }}</h3>
-      <p class="modal-message">{{ message }}</p>
-      <div class="modal-actions">
-        <button @click="emit('close')" class="btn-confirm" :style="{ backgroundColor: iconColor }">
-          {{ confirmText }}
-        </button>
+  <Teleport to="body">
+    <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
+      <div class="modal-content">
+        <div class="icon-wrapper" :style="{ backgroundColor: iconColor }">
+          <span class="icon">{{ iconClass }}</span>
+        </div>
+        <h3 class="modal-title">{{ title }}</h3>
+        <p class="modal-message">{{ message }}</p>
+        <div class="modal-actions">
+          <button @click="emit('close')" class="btn-confirm" :style="{ backgroundColor: iconColor }">
+            {{ confirmText }}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -74,7 +76,7 @@ const iconColor = computed(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: 9999;
 }
 
 .modal-content {

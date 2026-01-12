@@ -39,8 +39,10 @@ const calculateGA = () => {
   return weeks
 }
 
-// Mock Appointment Data (Replace with real API if available)
-const nextAppointment = ref({})
+// Real Appointment Data from Auth Store
+const nextAppointment = computed(() => {
+  return authStore.user?.Appointment || {}
+})
 
 onMounted(() => {
   fetchKickCount()
