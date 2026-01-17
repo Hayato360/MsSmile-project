@@ -129,7 +129,8 @@ const handleRegister = async () => {
           </button>
 
           <div class="login-link">
-            มีบัญชีแล้ว? <router-link to="/login">เข้าสู่ระบบ</router-link>
+            มีบัญชีแล้ว? <router-link to="/login">เข้าสู่ระบบ</router-link><br />
+            เป็นแพทย์? <router-link to="/register/doctor">ลงทะเบียนแพทย์</router-link>
           </div>
         </form>
       </div>
@@ -294,6 +295,7 @@ const handleRegister = async () => {
   margin-top: 1.5rem;
   font-size: 0.875rem;
   color: var(--color-text-light);
+  line-height: 1.8;
 }
 
 .login-link a {

@@ -16,6 +16,12 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue'),
       meta: { public: true },
     },
+    {
+      path: '/register/doctor',
+      name: 'register-doctor',
+      component: () => import('../views/RegisterDoctorView.vue'),
+      meta: { public: true },
+    },
     // Patient Routes
     {
       path: '/',

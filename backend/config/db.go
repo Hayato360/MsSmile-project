@@ -49,13 +49,50 @@ func SetupDatabase() {
 
 	// Create Doctor
 	Doctor := entity.Doctor{
-		Username:    "Doctor",
-		Password:    hashedPassword,
-		Email:       "Doctor@gmail.com",
-		FullName:    "Doctor D",
-		PhoneNumber: "0655765587",
+		Username:        "Doctor",
+		Password:        hashedPassword,
+		Email:           "Doctor@gmail.com",
+		FullName:        "Doctor D",
+		PhoneNumber:     "0655765587",
+		CitizenID:       "1111111111111",
+		HospitalCode:    "HOS001",
+		DoctorLicenseNo: "DOC00001",
+		IsRegistered:    true, // Already registered
 	}
 	db.FirstOrCreate(&Doctor, &entity.Doctor{Username: "Doctor"})
+
+	// Seed Pre-verified Doctors (NOT registered yet)
+	// These doctors can register using their credentials
+	PreVerifiedDoc1 := entity.Doctor{
+		CitizenID:       "1234567890123",
+		HospitalCode:    "HOS001",
+		DoctorLicenseNo: "DOC12345",
+		FullName:        "นพ.สมชาย ใจดี",
+		Email:           "somchai@hospital.th",
+		PhoneNumber:     "0812345678",
+		IsRegistered:    false,
+		// Username and Password are empty (will be set during registration)
+	}
+	db.FirstOrCreate(&PreVerifiedDoc1, &entity.Doctor{
+		CitizenID:       "1234567890123",
+		HospitalCode:    "HOS001",
+		DoctorLicenseNo: "DOC12345",
+	})
+
+	PreVerifiedDoc2 := entity.Doctor{
+		CitizenID:       "9876543210987",
+		HospitalCode:    "HOS001",
+		DoctorLicenseNo: "DOC67890",
+		FullName:        "พญ.สมหญิง รักษา",
+		Email:           "somying@hospital.th",
+		PhoneNumber:     "0898765432",
+		IsRegistered:    false,
+	}
+	db.FirstOrCreate(&PreVerifiedDoc2, &entity.Doctor{
+		CitizenID:       "9876543210987",
+		HospitalCode:    "HOS001",
+		DoctorLicenseNo: "DOC67890",
+	})
 
 	// Create Pregnant Woman (Not Pregnant yet)
 	Woman := entity.PregnantWoman{

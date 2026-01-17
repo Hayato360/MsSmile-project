@@ -20,6 +20,7 @@ func main() {
 
 	r.POST("/login", controller.Login)
 	r.POST("/register", controller.CreatePregnantWoman)
+	r.POST("/register/doctor", controller.RegisterDoctor)
 
 	// Protected Routes
 	protected := r.Group("/")

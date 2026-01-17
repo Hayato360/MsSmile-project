@@ -60,7 +60,10 @@ const handleLogin = async () => {
           </button>
 
           <div class="register-link">
-            ยังไม่มีบัญชี? <router-link to="/register">ลงทะเบียน</router-link>
+            ยังไม่มีบัญชี? 
+            <router-link to="/register">ลงทะเบียนผู้ป่วย</router-link>
+            หรือ
+            <router-link to="/register/doctor">ลงทะเบียนแพทย์</router-link>
           </div>
 
           <div class="demo-credentials">
