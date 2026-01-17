@@ -30,22 +30,24 @@ const emit = defineEmits(['confirm', 'cancel'])
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay">
-    <div class="modal-content">
-      <h3 class="modal-title">{{ title }}</h3>
-      <p class="modal-message">{{ message }}</p>
-      <div class="modal-actions">
-        <button @click="emit('cancel')" class="btn-cancel">{{ cancelText }}</button>
-        <button
-          @click="emit('confirm')"
-          class="btn-confirm"
-          :class="{ 'btn-destructive': isDestructive }"
-        >
-          {{ confirmText }}
-        </button>
+  <Teleport to="body">
+    <div v-if="isOpen" class="modal-overlay">
+      <div class="modal-content">
+        <h3 class="modal-title">{{ title }}</h3>
+        <p class="modal-message">{{ message }}</p>
+        <div class="modal-actions">
+          <button @click="emit('cancel')" class="btn-cancel">{{ cancelText }}</button>
+          <button
+            @click="emit('confirm')"
+            class="btn-confirm"
+            :class="{ 'btn-destructive': isDestructive }"
+          >
+            {{ confirmText }}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -59,7 +61,7 @@ const emit = defineEmits(['confirm', 'cancel'])
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .modal-content {

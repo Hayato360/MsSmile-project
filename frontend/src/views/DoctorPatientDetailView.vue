@@ -28,21 +28,29 @@ const activeTab = ref('visits') // visits, medical, vaccination, lab, appointmen
 const isEditingMedicalHistory = ref(false)
 
 const appointmentForm = ref({
-  Date: '',
+  Date: new Date().toISOString().split('T')[0],
   Time: '09:00',
   Title: 'นัดตรวจครรภ์ครั้งถัดไป',
   Location: 'แผนกสูตินารีเวช อาคาร 2',
 })
 
+const handleAppointmentInputChange = (field, event) => {
+  const value = event.target.value
+  appointmentForm.value[field] = value
+  console.log(`Appointment ${field} updated:`, value)
+}
+
 const createAppointment = async () => {
   if (!appointmentForm.value.Date) {
-    alert('กรุณาระบุวันที่นัดหมาย')
+    showNotification('แจ้งเตือน', 'กรุณาระบุวันที่นัดหมาย', 'warning')
     return
   }
 
   try {
-    // Combine Date and Time
-    const dateTimeStr = `${appointmentForm.value.Date}T${appointmentForm.value.Time}:00Z`
+    // Create a Date object in local time
+    const localDate = new Date(`${appointmentForm.value.Date}T${appointmentForm.value.Time}:00`)
+    // Convert to ISO string (UTC)
+    const dateTimeStr = localDate.toISOString()
 
     await api.post(`/doctor/patient/${route.params.id}/appointment`, {
       appointment_date: dateTimeStr,
@@ -50,14 +58,14 @@ const createAppointment = async () => {
       location: appointmentForm.value.Location,
     })
 
-    alert('บันทึกการนัดหมายสำเร็จ')
+    showNotification('สำเร็จ', 'บันทึกการนัดหมายสำเร็จ', 'success')
 
     // Refresh patient data to see new appointment
     const patientRes = await api.get(`/doctor/patients/${route.params.id}`)
     patient.value = patientRes.data
   } catch (error) {
     console.error('Error creating appointment:', error)
-    alert('เกิดข้อผิดพลาดในการนัดหมาย')
+    showNotification('เกิดข้อผิดพลาด', 'เกิดข้อผิดพลาดในการนัดหมาย', 'error')
   }
 }
 
@@ -866,17 +874,33 @@ const formatTags = (str) => {
         <form @submit.prevent="createAppointment" class="form-grid">
           <div class="form-group">
             <label>วันที่นัดหมาย</label>
-            <input type="date" v-model="appointmentForm.Date" required class="form-input" />
+            <input
+              type="date"
+              v-model="appointmentForm.Date"
+              @input="handleAppointmentInputChange('Date', $event)"
+              @change="handleAppointmentInputChange('Date', $event)"
+              required
+              class="form-input"
+            />
           </div>
           <div class="form-group">
             <label>เวลา</label>
-            <input type="time" v-model="appointmentForm.Time" required class="form-input" />
+            <input
+              type="time"
+              v-model="appointmentForm.Time"
+              @input="handleAppointmentInputChange('Time', $event)"
+              @change="handleAppointmentInputChange('Time', $event)"
+              required
+              class="form-input"
+            />
           </div>
           <div class="form-group full-width">
             <label>หัวข้อการนัดหมาย</label>
             <input
               type="text"
               v-model="appointmentForm.Title"
+              @input="handleAppointmentInputChange('Title', $event)"
+              @change="handleAppointmentInputChange('Title', $event)"
               required
               class="form-input"
               placeholder="เช่น นัดตรวจครรภ์ครั้งถัดไป"
@@ -2095,7 +2119,7 @@ const formatTags = (str) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .modal-content {
