@@ -2,6 +2,7 @@
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/bestiesmile1845/Projecteiei/config"
@@ -117,8 +118,12 @@ func GetPreviousPregnanciesByPregnantWomanID(c *gin.Context) {
 
 // POST /doctor/lab-result - Create lab result with file upload
 func DoctorCreateLabResult(c *gin.Context) {
+	// Debug Log
+	println("DEBUG: Incoming Content-Type:", c.Request.Header.Get("Content-Type"))
+
 	// Parse multipart form (32MB limit)
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		println("DEBUG: ParseMultipartForm error:", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "File too large or invalid multipart form"})
 		return
 	}
@@ -127,15 +132,31 @@ func DoctorCreateLabResult(c *gin.Context) {
 	var filePath string
 	file, err := c.FormFile("File")
 	if err == nil {
-		// Create uploads directory if it doesn't exist (handled by mkdir in most cases, but good to be safe)
-		// Assuming "uploads/lab_results" structure
+		// Log success
+		println("File received:", file.Filename, "Size:", file.Size)
+
+		// Create uploads directory if it doesn't exist
+		if err := os.MkdirAll("uploads/lab_results", 0755); err != nil {
+			println("Error creating directory:", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+			return
+		}
+
 		filename := time.Now().Format("20060102150405") + "_" + file.Filename
 		dst := "uploads/lab_results/" + filename
 		if err := c.SaveUploadedFile(file, dst); err != nil {
+			println("Error saving file:", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
 			return
 		}
 		filePath = dst
+	} else {
+		// Log error
+		println("Error getting file from form:", err.Error())
+		if err != http.ErrMissingFile {
+             // If error is NOT "no file submitted", then it's a real error (like max size, or bad parsing).
+             // However, http.ErrMissingFile is returned if key is missing.
+		}
 	}
 
 	// 2. Bind other fields

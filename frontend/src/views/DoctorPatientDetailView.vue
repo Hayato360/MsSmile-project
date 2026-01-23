@@ -580,11 +580,16 @@ const deleteVaccination = async () => {
 }
 
 // Lab Results Logic
+// Lab Results Logic
 const labResults = ref([])
-const labResultFile = ref(null)
+const selectedLabFile = ref(null) // Renamed to avoid collision with potential template ref
+const fileInputRef = ref(null)
 
 const handleFileUpload = (event) => {
-  labResultFile.value = event.target.files[0]
+  if (event.target.files && event.target.files[0]) {
+      selectedLabFile.value = event.target.files[0]
+      console.log("File selected:", selectedLabFile.value.name)
+  }
 }
 
 const fetchLabResults = async () => {
@@ -612,15 +617,35 @@ const saveLabResult = async () => {
     formData.append('HbTyping', labResultForm.value.HbTyping)
     formData.append('OtherRemarks', labResultForm.value.OtherRemarks)
 
-    if (labResultFile.value) {
-      formData.append('File', labResultFile.value)
+    if (selectedLabFile.value) {
+      formData.append('File', selectedLabFile.value)
+      console.log("Appending file to FormData:", selectedLabFile.value.name)
+    } else {
+      console.warn("No file selected for upload")
     }
 
+    // Use fetch for reliable multipart/form-data handling
+    const token = localStorage.getItem('token')
+    const response = await fetch('http://localhost:8081/doctor/lab-result', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Upload failed')
+    }
+
+    /*
     await api.post('/doctor/lab-result', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': null,
       },
     })
+    */
 
     showNotification('บันทึกสำเร็จ', 'บันทึกผลแล็บสำเร็จแล้ว', 'success')
 
@@ -632,7 +657,11 @@ const saveLabResult = async () => {
       HbTyping: '',
       OtherRemarks: '',
     }
-    labResultFile.value = null
+    
+    selectedLabFile.value = null
+    if (fileInputRef.value) {
+      fileInputRef.value.value = ''
+    }
     // Reset file input
     const fileInput = document.querySelector('input[type="file"]')
     if (fileInput) fileInput.value = ''
@@ -1736,7 +1765,7 @@ const formatTags = (str) => {
               <label>อัปโหลดเอกสาร (PDF)</label>
               <input
                 type="file"
-                ref="labResultFile"
+                ref="fileInputRef"
                 accept="application/pdf"
                 @change="handleFileUpload"
               />
@@ -2506,5 +2535,25 @@ select:focus {
   font-size: 1.25rem;
   line-height: 1;
   padding: 0 0.5rem;
+}
+
+.btn-view-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #10b981;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.btn-view-pdf:hover {
+  background-color: #d1fae5;
+  border-color: #059669;
 }
 </style>
